@@ -66,7 +66,7 @@ def sensor_query():
         python data-api.py --key=${API_KEY} --sensors=COLLISION_1 --deviceId=BAI_0000646 --lastHour=5
     Query data for collision sensor on BAI_000646 for a specific date range:
         python data-api.py --key=${API_KEY} --sensors=COLLISION_1 --deviceId=BAI_0000646 \ 
-            --startTime=2021-07-20T16:49:41 --endTime=2021-07-20T16:49:41
+            --startTime=2021-07-20T16:49:41 --endTime=2021-07-22T16:49:41
     Query data for collision sensor on BAI_000646 for the last day, filtering on events which occurred 
     in the first 5 minutes of any 10 minute interval:
         python data-api.py --key=${API_KEY} --sensors=COLLISION_1 --deviceId=BAI_0000646 --lastDay=1 \
