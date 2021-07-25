@@ -10,4 +10,4 @@ pip install -r requirements.txt
 
 ## Instructions and examples
 
-See `python data-apy.py -help`
+See `python data-apy.py --help`
