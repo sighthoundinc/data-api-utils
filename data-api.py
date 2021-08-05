@@ -7,7 +7,14 @@ import dateutil.parser
 import dateutil.tz
 import pprint
 import textwrap
+import sys, os, subprocess
+import re
+from google.cloud import storage
 
+GCP_SERVICE_KEY_PATH = "/data/keys/gcpbai.json"
+VIDEO_LENTH_MINUTES = 5
+SECONDS_BEFORE_EVENT = 10
+SECONDS_AFTER_EVENT = 5
 
 def query_flat(args):
     url = 'https://data-api.boulderai.com/data/sensor/query'
@@ -54,23 +61,70 @@ def time_parse(args, parser):
         parser.print_help()
         raise ValueError('Invalid arguments')
 
+def findVideo(gcp_client, args, time):
+    basePrefix = f"gcpbai/{args.deviceId}/"
+    prefix = basePrefix + time.strftime("%Y-%m-%d") + "/"
+    blobs = gcp_client.list_blobs("bai-rawdata", prefix=prefix)
+    format_str = "DataAcqVideo_%Y-%m-%d-%H-%M-%S.%f"
+    after_time = time - datetime.timedelta(minutes=VIDEO_LENTH_MINUTES)
+    # search for matching video
+    for blob in blobs:
+        video_name = re.search("DataAcqVideo_.*mp4", blob.name)
+        if video_name:
+            video_time = datetime.datetime.strptime(video_name.group(0).replace(".mp4", "000"), format_str).replace(tzinfo=dateutil.tz.UTC)
+            if video_time > after_time and video_time < time:
+                return blob
+    return False
+
+def crop(start,end,input,output):
+    ffmpeg = "ffmpeg -hide_banner -loglevel error -i " + input + " -ss  " + start + " -to " + end + " -c copy " + output
+    os.system(ffmpeg)
+            
+def downloadClip(gcp_client, args, event, video_blob):
+    tmp_filename = args.output + "/" + video_blob.name.split('/')[-1] + ".tmp"
+    # download file if it doesn't exist already
+    if not os.path.isfile(tmp_filename):
+        with open(tmp_filename, "+w"):
+            video_blob.download_to_filename(tmp_filename)
+    # find cooresponding time in video
+    event_time = dateutil.parser.parse(event['timeCollected']).astimezone(dateutil.tz.UTC)
+    video_name = re.search("DataAcqVideo_.*mp4", video_blob.name)
+    format_str = "DataAcqVideo_%Y-%m-%d-%H-%M-%S.%f"
+    video_time = datetime.datetime.strptime(video_name.group(0).replace(".mp4", "000"), format_str).replace(tzinfo=dateutil.tz.UTC)
+    video_relative_time = event_time - video_time
+    format_str = "%H:%M:%S"
+    start_time = str(video_relative_time - datetime.timedelta(seconds=SECONDS_BEFORE_EVENT))
+    end_time = str(video_relative_time + datetime.timedelta(seconds=SECONDS_AFTER_EVENT))
+    # make sure we're not going out of bounds
+    if datetime.timedelta(seconds=SECONDS_BEFORE_EVENT) > video_relative_time:
+        start_time = "00:00:00.000"
+    if (video_relative_time + datetime.timedelta(seconds=SECONDS_AFTER_EVENT)) > datetime.timedelta(seconds=VIDEO_LENTH_MINUTES*60):
+        end_time = f"00:0{VIDEO_LENTH_MINUTES}:00"
+    # crop the video using ffmpeg
+    output_filename = args.output + "/" + event['id'] + ".mp4"
+    crop(start_time, end_time, tmp_filename, output_filename)
+    return output_filename
+
 
 def sensor_query():
     parser = argparse.ArgumentParser(description="Data API query tool for the Sigthhound Data API",
                                      formatter_class=argparse.RawDescriptionHelpFormatter,
                                      epilog=textwrap.dedent('''\
-    Examples: 
+    Examples:
     Query data for collision sensor on BAI_000646 for the last 3 days:
         python data-api.py --key=${API_KEY} --sensors=COLLISION_1 --deviceId=BAI_0000646 --lastDay=3
     Query data for collision sensor on BAI_000646 for the last 5 hours:
         python data-api.py --key=${API_KEY} --sensors=COLLISION_1 --deviceId=BAI_0000646 --lastHour=5
     Query data for collision sensor on BAI_000646 for a specific date range:
-        python data-api.py --key=${API_KEY} --sensors=COLLISION_1 --deviceId=BAI_0000646 \ 
+        python data-api.py --key=${API_KEY} --sensors=COLLISION_1 --deviceId=BAI_0000646 \
             --startTime=2021-07-20T16:49:41 --endTime=2021-07-22T16:49:41
-    Query data for collision sensor on BAI_000646 for the last day, filtering on events which occurred 
+    Query data for collision sensor on BAI_000646 for the last day, filtering on events which occurred
     in the first 5 minutes of any 10 minute interval:
         python data-api.py --key=${API_KEY} --sensors=COLLISION_1 --deviceId=BAI_0000646 --lastDay=1 \
             --filterMinutesModulo=10 --filterMinutesRestrict=5
+    Download clips of all collision events in the last hour to output folder ./output/:
+        python3 data-api.py --key=${API_KEY} --sensors=COLLISION_1 --deviceId=BAI_0000646 --lastHour=1 \
+            --filterMinutesModulo=10 --filterMinutesRestrict=5 --downloadEventClips --output output/
     '''))
     parser.add_argument('--sensors', help="A comma separated list of sensors to query")
     parser.add_argument('--deviceId', help="The device ID (BAI_XXXXXXX)")
@@ -97,6 +151,11 @@ def sensor_query():
                              'starting at the top of the hour.')
     parser.add_argument('--filterMinutesRestrict', type=int,
                         help='An optional restrict filter.  See notes for filterMinutesModulo')
+    parser.add_argument('--downloadEventClips', action='store_true',
+                        help='An optional argument to download the video clips of the events if they exist in the bai-rawdata\n'
+                             'GCP bucket. Must be used with --output flag. ')
+    parser.add_argument('-o', '--output',
+                        help='Directory to download event clips. To be used with --downloadEventClips flag.')
     args = parser.parse_args()
 
     time_parse(args, parser)
@@ -116,8 +175,47 @@ def sensor_query():
     print(f"Starting at {args.startTime} (local time {start_date}) "
           f"and ending {end_date - start_date} later at {args.endTime} (local time {end_date})")
     pprint.pprint(filtered_result)
+    # download clips if video exists
+    if args.downloadEventClips:
+        if not args.output:
+            print("ERROR: must pass --output flag with --downloadEventClips")
+            sys.exit(1)
+        if not os.path.isdir(args.output):
+            print(f"ERROR: {args.output} is not a directory!")
+            sys.exit(1)
+
+        format_str = "%Y-%m-%dT%H:%M:%S.000Z"
+        # initialize gcp client
+        gcp_client = None
+        try:
+            gcp_client = storage.Client.from_service_account_json(GCP_SERVICE_KEY_PATH)
+        except:
+            print(f"Failed opening GCP storage client, please make sure GCP service key is available at {GCP_SERVICE_KEY_PATH}")
+            sys.exit(1)
+
+        i = 0
+        for event in filtered_result:
+            # if i > 0:
+            #     continue
+            event_time = dateutil.parser.parse(event['timeCollected']).astimezone(dateutil.tz.UTC)
+            print(f"Searching for video for event with ID {event['id']}... ", end="", flush=True)
+            video_blob = findVideo(gcp_client, args, event_time)
+            if video_blob == False:
+                print("No luck.")
+                continue
+            else:
+                print("Found!")
+            filename = downloadClip(gcp_client, args, event, video_blob)
+            print(f"Downloaded {filename}")
+            i += 1 
+        # clear up tmp files
+        os.system(f"rm {args.output}/*.tmp")
+
+
+    return filtered_result
 
 
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
-    sensor_query()
+    result = sensor_query()
+
