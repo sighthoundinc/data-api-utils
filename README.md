@@ -30,7 +30,7 @@ Run `python data-apy.py --help` for an overview.
 - `--filterMinutesRestrict`: An optional restrict filter. See notes for filterMinutesModulo
 
 #### Download Clips:
-**Note: a GCP service key must be available to download event clips. By default, the script looks for the key at `/data/keys/gcpbai.json`, but you can change the `GCP_SERVICE_KEY_PATH`  to point to the correct location.**
+**Note: To download clips you must be logged into a Google User account with read access to the bai-rawdata bucket. Login with `gcloud auth application-default login`**
 - `--downloadEventClips`: Optional flag to download the video clips of the queried events if they exist in the bai-rawdata GCP bucket
 	- Must be used with the `--output` flag
 - `--output`: The output directory to download the event clips to
@@ -54,6 +54,7 @@ python data-api.py --key=${API_KEY} --sensors=COLLISION_1 --deviceId=BAI_0000646
 ```
 Download clips of all collision events in the last hour to output folder ./output/:
 ```
+gcloud auth application-default login
 mkdir output
 python3 data-api.py --key=${API_KEY} --sensors=COLLISION_1 --deviceId=BAI_0000646 --lastHour=1 --filterMinutesModulo=10 --filterMinutesRestrict=5 --downloadEventClips --output output/
 ```

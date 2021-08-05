@@ -10,8 +10,8 @@ import textwrap
 import sys, os, subprocess
 import re
 from google.cloud import storage
+import google.auth
 
-GCP_SERVICE_KEY_PATH = "/data/keys/gcpbai.json"
 VIDEO_LENTH_MINUTES = 5
 SECONDS_BEFORE_EVENT = 10
 SECONDS_AFTER_EVENT = 5
@@ -188,9 +188,10 @@ def sensor_query():
         # initialize gcp client
         gcp_client = None
         try:
-            gcp_client = storage.Client.from_service_account_json(GCP_SERVICE_KEY_PATH)
+            credentials, project = google.auth.default()
+            gcp_client = storage.Client(project, credentials)
         except:
-            print(f"Failed opening GCP storage client, please make sure GCP service key is available at {GCP_SERVICE_KEY_PATH}")
+            print(f"Failed opening GCP storage client, please login using `gcloud auth application-default login`")
             sys.exit(1)
 
         i = 0
