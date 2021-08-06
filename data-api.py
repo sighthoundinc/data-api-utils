@@ -98,12 +98,13 @@ def trim(start,end,input,output):
     )
             
 def downloadClip(gcp_client, args, event, video_blob):
-    # create tmp directory if it doesn't exist already
-    if not os.path.isdir(args.output + "/tmp/"):
-        os.mkdir(args.output + "/tmp/")
     tmp_filename = args.output + "/tmp/" + video_blob.name.split('/')[-1] 
     # download file if it doesn't exist already
     if not os.path.isfile(tmp_filename):
+        # delete last tmp file if we're not using it
+        if os.path.isdir(args.output + "/tmp"):
+            shutil.rmtree(args.output + "/tmp/")
+        os.mkdir(args.output + "/tmp/")
         with open(tmp_filename, "+w"):
             video_blob.download_to_filename(tmp_filename)
     # find cooresponding time in video
@@ -210,8 +211,8 @@ def sensor_query():
             print("ERROR: must pass --output flag with --downloadEventClips")
             sys.exit(1)
         if not os.path.isdir(args.output):
-            print(f"ERROR: {args.output} is not a directory!")
-            sys.exit(1)
+            print(f"Creating output directory {args.output}")
+            os.mkdir(args.output)
 
         format_str = "%Y-%m-%dT%H:%M:%S.000Z"
         # initialize gcp client
