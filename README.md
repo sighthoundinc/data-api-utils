@@ -52,12 +52,18 @@ Query data for collision sensor on BAI_000646 for the last day, filtering on eve
 ```
 python3 data-api.py --key=${API_KEY} --sensors=COLLISION_1 --deviceId=BAI_0000646 --lastDay=1 --filterMinutesModulo=10 --filterMinutesRestrict=5
 ```
-Download clips of all collision events in the last hour to output folder ./output/:
+Download clips of all collision events in the last hour from GCP base path bai-rawdata/gcpbai (default) to local output folder ./output/:
 ```
 gcloud auth application-default login
 mkdir output
-python3 data-api.py --key=${API_KEY} --sensors=COLLISION_1 --deviceId=BAI_0000646 --lastHour=1 --filterMinutesModulo=10 --filterMinutesRestrict=5 --downloadEventClips --output output/
+python3 data-api.py --key=${API_KEY} --sensors=COLLISION_1 --deviceId=BAI_0000646 --lastHour=1 --filterMinutesModulo=10 --filterMinutesRestrict=5 --downloadEventClips --sourceGCPpath bai-rawdata/gcpbai --output output/
 ```
 
+Downlaod event clips of all collision events in the last hour from GCP bucket base path bai-rawdata/gcpbai/ , upload event clips to GCP bucket bai-dev-data/ai-analysis/sample, and save a CSV file out.csv with links to the clips:
+```
+gcloud auth application-default login
+mkdir output
+python3 data-api.py --key=${API_KEY} --sensors=COLLISION_1 --deviceId=BAI_0000646 --lastHour=1 --filterMinutesModulo=10 --filterMinutesRestrict=5 --downloadEventClips --sourceGCPpath bai-rawdata/gcpbai  --output output/ --uploadEventClips bai-dev-data/ai-analysis/sample/ --csv out.csv
+```
 
 

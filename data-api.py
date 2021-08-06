@@ -64,9 +64,18 @@ def time_parse(args, parser):
         raise ValueError('Invalid arguments')
 
 def findVideo(gcp_client, args, time):
-    basePrefix = f"gcpbai/{args.deviceId}/"
-    prefix = basePrefix + time.strftime("%Y-%m-%d") + "/"
-    blobs = gcp_client.list_blobs("bai-rawdata", prefix=prefix)
+    bucket = None
+    basePath = None
+    if args.sourceGCPpath:
+        bucket = args.sourceGCPpath.split("/")[0]
+        basePath = "/".join(args.sourceGCPpath.split("/")[1:])
+    else:
+        bucket = "bai-rawdata"
+        basePath = "gcpbai"
+    prefix = f"{basePath}/{args.deviceId}/" + time.strftime("%Y-%m-%d") + "/"
+    # google cloud doesn't accept double //
+    prefix = prefix.replace("//","/")
+    blobs = gcp_client.list_blobs(bucket, prefix=prefix)
     format_str = "DataAcqVideo_%Y-%m-%d-%H-%M-%S.%f"
     after_time = time - datetime.timedelta(minutes=VIDEO_LENTH_MINUTES)
     # search for matching video
@@ -167,6 +176,15 @@ def sensor_query():
                              'GCP bucket. Must be used with --output flag. ')
     parser.add_argument('-o', '--output',
                         help='Directory to download event clips. To be used with --downloadEventClips flag.')
+    parser.add_argument('--sourceGCPpath', 
+                        help='GCP path to search for and retrieve video clips from. Should be in the format'
+                             '<bucket>/pathTo/deviceDirs/ . Defaults to bai-rawdata/gcpbai/ if not specified.')
+    parser.add_argument('--uploadEventClips', 
+                        help='GCP path to upload trimmed event clips to. Should be in the format'
+                             '<bucket>/pathTo/deviceDirs/ . If specified, video clips will be deleted locally')
+    parser.add_argument('--csv', 
+                        help='To be used with --uploadEventClips, path to CSV file with video clip link,\n'
+                             'eventId and time collected information for each uploaded clip.')
     args = parser.parse_args()
 
     time_parse(args, parser)
@@ -205,10 +223,8 @@ def sensor_query():
             print(f"Failed opening GCP storage client, please login using `gcloud auth application-default login`")
             sys.exit(1)
 
-        i = 0
+        downloaded = []
         for event in filtered_result:
-            # if i > 0:
-            #     continue
             event_time = dateutil.parser.parse(event['timeCollected']).astimezone(dateutil.tz.UTC)
             print(f"Searching for video for event with ID {event['id']}... ", end="", flush=True)
             video_blob = findVideo(gcp_client, args, event_time)
@@ -218,10 +234,56 @@ def sensor_query():
             else:
                 print("Found!")
             filename = downloadClip(gcp_client, args, event, video_blob)
+            downloaded.append(filename)
             print(f"Downloaded {filename}")
-            i += 1 
         # clear up tmp files
-        shutil.rmtree(args.output + "/tmp/")
+        if os.path.isdir(args.output + "/tmp/"):
+            shutil.rmtree(args.output + "/tmp/")
+
+        uploads = []
+        if args.uploadEventClips:
+            bucket_name = args.uploadEventClips.split("/")[0]
+            base_path = "/".join(args.uploadEventClips.split("/")[1:]) + "/"
+            base_path = base_path.replace("//","/")
+            bucket = None
+            try:
+                bucket = gcp_client.bucket(bucket_name)
+                print(f"Uploading all event clips to bucket {bucket_name} and path {base_path}")
+            except:
+                print(f"ERROR: Trouble opening bucket {bucket_name}")
+                sys.exit(1)
+            
+            for filepath in downloaded:
+                filename = filepath.split("/")[-1]
+                print(f"Uploading {filename} to {bucket_name}/{base_path}... ", end="")
+                blob = bucket.blob(base_path + filename)
+                blob.upload_from_filename(filepath)
+                uploads.append(bucket_name + "/" + base_path + filename)
+                print("Done!")
+                
+            if args.csv: 
+                csv_file = None
+                try: 
+                    csv_file = open(args.csv, "w+")
+                    print(f"Writing to CSV file at {args.csv}... ", end="")
+                except:
+                    print(f"ERROR: Could not open {args.csv}")
+                    sys.exit(1)
+                csv_file.write("eventId, timeCollected, video clip \n")
+                
+                for clip in uploads:
+                    eventId = clip.split("/")[-1].replace(".mp4","")
+                    timeCollected = None
+                    # find time collected
+                    for event in filtered_result:
+                        if event['id'] == eventId:
+                            timeCollected = event['timeCollected']
+                    authenticatedURL = "https://storage.cloud.google.com/" + clip
+                    csv_file.write(f"{eventId}, {timeCollected}, {authenticatedURL} \n")
+                print("Done!")
+            print("Deleting clips locally")
+            if os.path.isdir(args.output):
+                shutil.rmtree(args.output)
 
     return filtered_result
 
