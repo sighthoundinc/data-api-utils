@@ -2,3 +2,5 @@ requests~=2.26.0
 python-dateutil
 datetime
 google-cloud-storage
+ffmpeg-python
+shutil

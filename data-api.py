@@ -11,6 +11,8 @@ import sys, os, subprocess
 import re
 from google.cloud import storage
 import google.auth
+import ffmpeg
+import shutil
 
 VIDEO_LENTH_MINUTES = 5
 SECONDS_BEFORE_EVENT = 10
@@ -76,12 +78,21 @@ def findVideo(gcp_client, args, time):
                 return blob
     return False
 
-def crop(start,end,input,output):
-    ffmpeg = "ffmpeg -hide_banner -loglevel error -i " + input + " -ss  " + start + " -to " + end + " -c copy " + output
-    os.system(ffmpeg)
+def trim(start,end,input,output):
+    (
+        ffmpeg
+        .input(input)
+        .trim(start=start, end=end)
+        .output(output)
+        .overwrite_output()
+        .run(quiet=True)
+    )
             
 def downloadClip(gcp_client, args, event, video_blob):
-    tmp_filename = args.output + "/" + video_blob.name.split('/')[-1] + ".tmp"
+    # create tmp directory if it doesn't exist already
+    if not os.path.isdir(args.output + "/tmp/"):
+        os.mkdir(args.output + "/tmp/")
+    tmp_filename = args.output + "/tmp/" + video_blob.name.split('/')[-1] 
     # download file if it doesn't exist already
     if not os.path.isfile(tmp_filename):
         with open(tmp_filename, "+w"):
@@ -100,9 +111,9 @@ def downloadClip(gcp_client, args, event, video_blob):
         start_time = "00:00:00.000"
     if (video_relative_time + datetime.timedelta(seconds=SECONDS_AFTER_EVENT)) > datetime.timedelta(seconds=VIDEO_LENTH_MINUTES*60):
         end_time = f"00:0{VIDEO_LENTH_MINUTES}:00"
-    # crop the video using ffmpeg
+    # trim the video using ffmpeg
     output_filename = args.output + "/" + event['id'] + ".mp4"
-    crop(start_time, end_time, tmp_filename, output_filename)
+    trim(start_time, end_time, tmp_filename, output_filename)
     return output_filename
 
 
@@ -210,8 +221,7 @@ def sensor_query():
             print(f"Downloaded {filename}")
             i += 1 
         # clear up tmp files
-        os.system(f"rm {args.output}/*.tmp")
-
+        shutil.rmtree(args.output + "/tmp/")
 
     return filtered_result
 
