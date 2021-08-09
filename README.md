@@ -34,6 +34,10 @@ Run `python3 data-apy.py --help` for an overview.
 - `--downloadEventClips`: Optional flag to download the video clips of the queried events if they exist in the bai-rawdata GCP bucket
 	- Must be used with the `--output` flag
 - `--output`: The output directory to download the event clips to
+- `--sourceGCPpath`: Google Cloud Storage path to search for and retrieve video clips from. Should be in the format `<bucket>/pathTo/deviceDirs`. If not specified, will default to `bai-rawdata/gcpbai/`
+- `--uploadEventClips`: Google Cloud Storage path to upload event clips to. Should be in the format `<bucket>/pathTo/eventClips/`. If specified, the event clips will be deleted locally after upload. 
+	- `--csv` argument can be used with `--uploadEventClips`
+- `--csv`: Path to output CSV file with eventId, timeCollected, and event clip GCP link if `--uploadEventClips` is specified. 
 
 ### Examples:
 Query data for collision sensor on BAI_000646 for the last 3 days:

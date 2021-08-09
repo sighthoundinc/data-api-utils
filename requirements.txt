@@ -3,4 +3,3 @@ python-dateutil
 datetime
 google-cloud-storage
 ffmpeg-python
-shutil
