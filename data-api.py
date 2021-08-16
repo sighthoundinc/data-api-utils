@@ -1,6 +1,7 @@
 import argparse
 import datetime
 import json
+from time import time
 
 import requests
 import dateutil.parser
@@ -18,14 +19,14 @@ VIDEO_LENTH_MINUTES = 5
 SECONDS_BEFORE_EVENT = 10
 SECONDS_AFTER_EVENT = 5
 
-def query_flat(args):
+def query_flat(args, sensors):
     url = 'https://data-api.boulderai.com/data/sensor/query'
     headers = {'Content-type': 'application/json', 'X-API-Key': f'{args.key}'}
     data = {'deviceId': f'{args.deviceId}',
-            'sensors': [f'{args.sensors}'],
+            'sensors': [f'{sensors}'],
             'startTime': f'{args.startTime}',
             'endTime': f'{args.endTime}'}
-    print(f'Issuing curl "{url}" -d \'{{"deviceId":"{args.deviceId}","sensors":["{args.sensors}"],'
+    print(f'Issuing curl "{url}" -d \'{{"deviceId":"{args.deviceId}","sensors":["{sensors}"],'
           f'"startTime":"{args.startTime}","endTime":"{args.endTime}"}}\' \\\n'
           f'-X POST \\\n'
           f'-H "Content-Type: application/json" \\\n'
@@ -126,6 +127,98 @@ def downloadClip(gcp_client, args, event, video_blob):
     trim(start_time, end_time, tmp_filename, output_filename)
     return output_filename
 
+# add start time to event list    
+def addStartTime(eventList):
+    format_str = "%Y-%m-%dT%H:%M:%S.%f"
+    for event in eventList:
+        if not event['value']:
+            print(f"ERROR: Event {event['id']} does not have value content")
+            sys.exit(1)
+        timedelta_from_value = datetime.timedelta(seconds=event["value"])
+        event_time = dateutil.parser.parse(event['timeCollected']).astimezone(dateutil.tz.UTC)
+        event["startTime"] = (event_time - timedelta_from_value).strftime(format_str)
+
+# find event with closest timestamp to provided timestamp
+def findClosest(timestamp, event_list):
+    event_time = dateutil.parser.parse(timestamp).astimezone(dateutil.tz.UTC)
+    closest = None
+    for potential_event in event_list:
+        # find difference in time
+        potential_event_time = dateutil.parser.parse(potential_event['timeCollected']).astimezone(dateutil.tz.UTC)
+        if re.match(r"(COLLISION_[0-9]*)|(PRESENCE_.*_[0-9]*)", potential_event['sensorName']):
+            potential_event_time = dateutil.parser.parse(potential_event['startTime']).astimezone(dateutil.tz.UTC)
+        time_difference = None
+        if potential_event_time < event_time:
+            time_difference = "-" + str(event_time - potential_event_time)
+        else: 
+            time_difference = str(potential_event_time - event_time)
+
+        if not closest:
+            closest = {"event": potential_event, "time_difference": time_difference}
+            continue
+        if time_difference < closest["time_difference"]:
+            closest = {"event": potential_event, "time_difference": time_difference}
+    return closest
+
+# add CrossReference events
+def addCrossReferences(filtered_result, crossReferenceEvents):
+    for primary_event in filtered_result:
+        if 'startTime' in primary_event:
+            primary_event['closestStartTime'] = findClosest(primary_event['startTime'], crossReferenceEvents)
+        else:
+            primary_event['closestTimeCollected'] = findClosest(primary_event['timeCollected'], crossReferenceEvents)
+    return filtered_result
+
+# write csvInfo to csv
+def write_to_csv(args, csvInfo):
+    if args.csv:
+        csv_file = None
+        try: 
+            csv_file = open(args.csv, "w+")
+            print(f"Writing to CSV file at {args.csv}... ", end="")
+        except:
+            print(f"ERROR: Could not open {args.csv}")
+            sys.exit(1)
+        csv_file.write("eventId,")
+        for key in list(list(csvInfo.values())[0].keys()):
+            csv_file.write(str(key)+",")
+        csv_file.write("\n")
+        for eventId in csvInfo:
+            csv_file.write(f"{eventId},")
+            for key in csvInfo[eventId]:
+                csv_file.write(f"{csvInfo[eventId][key]},")
+            csv_file.write("\n")
+        print("Done!")
+
+def uploadEventClips(args, downloaded, csvInfo, gcp_client):
+    # upload event clips
+    uploads = []
+    if args.uploadEventClips:
+        bucket_name = args.uploadEventClips.split("/")[0]
+        base_path = "/".join(args.uploadEventClips.split("/")[1:]) + "/"
+        base_path = base_path.replace("//","/")
+        bucket = None
+        try:
+            bucket = gcp_client.bucket(bucket_name)
+            print(f"Uploading all event clips to bucket {bucket_name} and path {base_path}")
+        except:
+            print(f"ERROR: Trouble opening bucket {bucket_name}")
+            sys.exit(1)
+        
+        for filepath in downloaded:
+            filename = filepath.split("/")[-1]
+            print(f"Uploading {filename} to {bucket_name}/{base_path}... ", end="")
+            blob = bucket.blob(base_path + filename)
+            blob.upload_from_filename(filepath)
+            uploads.append(bucket_name + "/" + base_path + filename)
+            print("Done!")
+            
+        if args.csv: 
+            for clip in uploads:
+                eventId = clip.split("/")[-1].replace(".mp4","")
+                csvInfo[eventId]["GCP Authenticated URL"] = "https://storage.cloud.google.com/" + clip 
+    
+    return args, csvInfo
 
 def sensor_query():
     parser = argparse.ArgumentParser(description="Data API query tool for the Sigthhound Data API",
@@ -172,6 +265,9 @@ def sensor_query():
                              'starting at the top of the hour.')
     parser.add_argument('--filterMinutesRestrict', type=int,
                         help='An optional restrict filter.  See notes for filterMinutesModulo')
+    parser.add_argument('--crossReferenceSensor', type=str,
+                        help='A sensor to cross reference events with. This information will be output to the CSV \n'
+                             'file if the --csv flag is specified')
     parser.add_argument('--downloadEventClips', action='store_true',
                         help='An optional argument to download the video clips of the events if they exist in the bai-rawdata\n'
                              'GCP bucket. Must be used with --output flag. ')
@@ -184,12 +280,12 @@ def sensor_query():
                         help='GCP path to upload trimmed event clips to. Should be in the format'
                              '<bucket>/pathTo/deviceDirs/ . If specified, video clips will be deleted locally')
     parser.add_argument('--csv', 
-                        help='To be used with --uploadEventClips, path to CSV file with video clip link,\n'
+                        help='Path to output CSV file with event clip information.'
                              'eventId and time collected information for each uploaded clip.')
     args = parser.parse_args()
 
     time_parse(args, parser)
-    result = query_flat(args)
+    result = query_flat(args, args.sensors)
     if args.filterMinutesModulo and args.filterMinutesRestrict:
         print(f"Events filtered for the first {args.filterMinutesRestrict} minutes of each "
               f"{args.filterMinutesModulo} minute interval")
@@ -205,7 +301,42 @@ def sensor_query():
     print(f"Starting at {args.startTime} (local time {start_date}) "
           f"and ending {end_date - start_date} later at {args.endTime} (local time {end_date})")
     pprint.pprint(filtered_result)
-    # download clips if video exists
+
+    if len(filtered_result) == 0:
+        print("No events matching filters.")
+        return None
+
+    # initialize csvInfo dictionary
+    csvInfo = {}
+    if args.csv:
+        for event in filtered_result:
+            csvInfo[event['id']] = {}
+            if event['value']:
+                csvInfo[event['id']]['value'] = event['value']
+
+    # cross reference events
+    if args.crossReferenceSensor:
+        print(f"Cross referencing {args.sensors} events with {args.crossReferenceSensor}")
+        crossReferenceEvents = query_flat(args, args.crossReferenceSensor)
+        for event_list in [filtered_result, crossReferenceEvents]:
+            if event_list and re.match(r"(COLLISION_[0-9]*)|(PRESENCE_.*_[0-9]*)", event_list[0]['sensorName']):
+                eventList = addStartTime(event_list)
+        # add cross reference events to filtered_result dictionary
+        filtered_result = addCrossReferences(filtered_result, crossReferenceEvents)
+        if filtered_result and re.match(r"COLLISION_[0-9]*", filtered_result[0]['sensorName']):
+            for event in filtered_result:
+                csvInfo[event['id']]['startTime'] = event['startTime']
+                csvInfo[event['id']]['endTime'] = event['timeCollected']
+                csvInfo[event['id']][f'{args.crossReferenceSensor} Time'] = event['closestStartTime']['event']['timeCollected'] if event['closestStartTime'] else None
+                csvInfo[event['id']][f'{args.crossReferenceSensor} Time Difference'] = event['closestStartTime']['time_difference'] if event['closestStartTime'] else None
+        else:
+            for event in filtered_result:
+                csvInfo[event['id']]['timeCollected'] = event['timeCollected']
+                csvInfo[event['id']][f'{args.crossReferenceSensor} Time'] = event['closestTimeCollected']['event']['timeCollected'] if event['closestTimeCollected'] else None
+                csvInfo[event['id']][f'{args.crossReferenceSensor} Time Difference'] = event['closestTimeColleced']['time_difference'] if event['closestTimeColleced'] else None
+
+
+    # download clips if video exists in source GCP bucket 
     if args.downloadEventClips:
         if not args.output:
             print("ERROR: must pass --output flag with --downloadEventClips")
@@ -241,50 +372,9 @@ def sensor_query():
         if os.path.isdir(args.output + "/tmp/"):
             shutil.rmtree(args.output + "/tmp/")
 
-        uploads = []
-        if args.uploadEventClips:
-            bucket_name = args.uploadEventClips.split("/")[0]
-            base_path = "/".join(args.uploadEventClips.split("/")[1:]) + "/"
-            base_path = base_path.replace("//","/")
-            bucket = None
-            try:
-                bucket = gcp_client.bucket(bucket_name)
-                print(f"Uploading all event clips to bucket {bucket_name} and path {base_path}")
-            except:
-                print(f"ERROR: Trouble opening bucket {bucket_name}")
-                sys.exit(1)
-            
-            for filepath in downloaded:
-                filename = filepath.split("/")[-1]
-                print(f"Uploading {filename} to {bucket_name}/{base_path}... ", end="")
-                blob = bucket.blob(base_path + filename)
-                blob.upload_from_filename(filepath)
-                uploads.append(bucket_name + "/" + base_path + filename)
-                print("Done!")
-                
-            if args.csv: 
-                csv_file = None
-                try: 
-                    csv_file = open(args.csv, "w+")
-                    print(f"Writing to CSV file at {args.csv}... ", end="")
-                except:
-                    print(f"ERROR: Could not open {args.csv}")
-                    sys.exit(1)
-                csv_file.write("eventId, timeCollected, video clip \n")
-                
-                for clip in uploads:
-                    eventId = clip.split("/")[-1].replace(".mp4","")
-                    timeCollected = None
-                    # find time collected
-                    for event in filtered_result:
-                        if event['id'] == eventId:
-                            timeCollected = event['timeCollected']
-                    authenticatedURL = "https://storage.cloud.google.com/" + clip
-                    csv_file.write(f"{eventId}, {timeCollected}, {authenticatedURL} \n")
-                print("Done!")
-            print("Deleting clips locally")
-            if os.path.isdir(args.output):
-                shutil.rmtree(args.output)
+        args, csvInfo = uploadEventClips(args, downloaded, csvInfo, gcp_client)
+    # write results to csv
+    write_to_csv(args, csvInfo)
 
     return filtered_result
 
