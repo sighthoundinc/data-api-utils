@@ -327,7 +327,7 @@ def sensor_query():
             for event in filtered_result:
                 csvInfo[event['id']]['startTime'] = event['startTime']
                 csvInfo[event['id']]['endTime'] = event['timeCollected']
-                csvInfo[event['id']][f'{args.crossReferenceSensor} Time'] = event['closestStartTime']['event']['timeCollected'] if event['closestStartTime'] else None
+                csvInfo[event['id']][f'{args.crossReferenceSensor} Time'] = event['closestStartTime']['event']['startTime'] if event['closestStartTime'] else None
                 csvInfo[event['id']][f'{args.crossReferenceSensor} Time Difference'] = event['closestStartTime']['time_difference'] if event['closestStartTime'] else None
         else:
             for event in filtered_result:
