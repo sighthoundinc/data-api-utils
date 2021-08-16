@@ -1,6 +1,6 @@
 # data-api-utils
 
-Utilites for working with the Sighthound [Data API](http://docs.data-api.boulderai.com/#introduction)
+Utilities for working with the Sighthound [Data API](http://docs.data-api.boulderai.com/#introduction)
 
 # Setup
 
@@ -15,10 +15,10 @@ Run `python3 data-apy.py --help` for an overview.
 #### Required Arguments:   
 - `--key=${API_KEY}`: API Key obtained from the Sighthound/Boulder AI Platform  
 - `--deviceId`: the deviceId of the device you would like to query  
-- `--sensors`: a comma seperated list of the sensors you would like to query  
+- `--sensors`: a comma separated list of the sensors you would like to query  
 
 ### Optional Arguments
-- `--crossReferenceSensor`: A sensor to cross refernece events with. The cross referenced sensor's time and time difference relative to original sensor will be included in the CSV file if `--csv` is specified.
+- `--crossReferenceSensor`: A sensor to cross reference events with. The cross referenced sensor's time and time difference relative to original sensor will be included in the CSV file if `--csv` is specified.
 
 #### Timeframe Arguments - at least one required:  
 - `--startTime`: The start time you would like to query from, accepts any format that dateutil.parser supports
@@ -70,14 +70,14 @@ mkdir output
 python3 data-api.py --key=${API_KEY} --sensors=COLLISION_1 --deviceId=BAI_0000646 --lastHour=1 --filterMinutesModulo=10 --filterMinutesRestrict=5 --downloadEventClips --sourceGCPpath bai-rawdata/gcpbai --output output/
 ```
 
-Downlaod event clips of all collision events in the last hour from GCP bucket base path bai-rawdata/gcpbai/ , upload event clips to GCP bucket bai-dev-data/ai-analysis/sample, and save a CSV file out.csv with links to the clips:
+Download event clips of all collision events in the last hour from GCP bucket base path bai-rawdata/gcpbai/ , upload event clips to GCP bucket bai-dev-data/ai-analysis/sample, and save a CSV file out.csv with links to the clips:
 ```
 gcloud auth application-default login
 mkdir output
 python3 data-api.py --key=${API_KEY} --sensors=COLLISION_1 --deviceId=BAI_0000646 --lastHour=1 --filterMinutesModulo=10 --filterMinutesRestrict=5 --downloadEventClips --sourceGCPpath bai-rawdata/gcpbai  --output output/ --uploadEventClips bai-dev-data/ai-analysis/sample/ --csv out.csv
 ```
 
-Downlaod event clips of all collision events in the last hour from GCP bucket base path bai-rawdata/gcpbai/ , upload event clips to GCP bucket bai-dev-data/ai-analysis/sample, and save a CSV file out.csv with links to the clips. 
+Download event clips of all collision events in the last hour from GCP bucket base path bai-rawdata/gcpbai/ , upload event clips to GCP bucket bai-dev-data/ai-analysis/sample, and save a CSV file out.csv with links to the clips. 
 Additionally, cross reference these events with PRESENCE_PERSON_1 events and have this information included in the CSV file.:
 ```
 gcloud auth application-default login
