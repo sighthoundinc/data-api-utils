@@ -142,6 +142,7 @@ def addStartTime(eventList):
 def findClosest(timestamp, event_list):
     event_time = dateutil.parser.parse(timestamp).astimezone(dateutil.tz.UTC)
     closest = None
+    before = True
     for potential_event in event_list:
         # find difference in time
         potential_event_time = dateutil.parser.parse(potential_event['timeCollected']).astimezone(dateutil.tz.UTC)
@@ -149,15 +150,23 @@ def findClosest(timestamp, event_list):
             potential_event_time = dateutil.parser.parse(potential_event['startTime']).astimezone(dateutil.tz.UTC)
         time_difference = None
         if potential_event_time < event_time:
-            time_difference = "-" + str(event_time - potential_event_time)
+            before = True
+            time_difference = event_time - potential_event_time
         else: 
-            time_difference = str(potential_event_time - event_time)
+            before = False
+            time_difference = potential_event_time - event_time
 
         if not closest:
-            closest = {"event": potential_event, "time_difference": time_difference}
+            if before == True:
+                closest = {"event": potential_event, "time_difference_str": "-" + str(time_difference), "time_difference_timedelta": time_difference}
+            else:
+                closest = {"event": potential_event, "time_difference_str": str(time_difference), "time_difference_timedelta": time_difference}
             continue
-        if time_difference < closest["time_difference"]:
-            closest = {"event": potential_event, "time_difference": time_difference}
+        if time_difference < closest["time_difference_timedelta"]:
+            if before == True:
+                closest = {"event": potential_event, "time_difference_str": "-" + str(time_difference), "time_difference_timedelta": time_difference}
+            else:
+                closest = {"event": potential_event, "time_difference_str": str(time_difference), "time_difference_timedelta": time_difference}
     return closest
 
 # add CrossReference events
@@ -328,12 +337,12 @@ def sensor_query():
                 csvInfo[event['id']]['startTime'] = event['startTime']
                 csvInfo[event['id']]['endTime'] = event['timeCollected']
                 csvInfo[event['id']][f'{args.crossReferenceSensor} Time'] = event['closestStartTime']['event']['startTime'] if event['closestStartTime'] else None
-                csvInfo[event['id']][f'{args.crossReferenceSensor} Time Difference'] = event['closestStartTime']['time_difference'] if event['closestStartTime'] else None
+                csvInfo[event['id']][f'{args.crossReferenceSensor} Time Difference'] = event['closestStartTime']['time_difference_str'] if event['closestStartTime'] else None
         else:
             for event in filtered_result:
                 csvInfo[event['id']]['timeCollected'] = event['timeCollected']
                 csvInfo[event['id']][f'{args.crossReferenceSensor} Time'] = event['closestTimeCollected']['event']['timeCollected'] if event['closestTimeCollected'] else None
-                csvInfo[event['id']][f'{args.crossReferenceSensor} Time Difference'] = event['closestTimeColleced']['time_difference'] if event['closestTimeColleced'] else None
+                csvInfo[event['id']][f'{args.crossReferenceSensor} Time Difference'] = event['closestTimeColleced']['time_difference_str'] if event['closestTimeColleced'] else None
 
 
     # download clips if video exists in source GCP bucket 
