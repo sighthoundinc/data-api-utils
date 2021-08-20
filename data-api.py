@@ -234,19 +234,19 @@ def sensor_query():
                                      formatter_class=argparse.RawDescriptionHelpFormatter,
                                      epilog=textwrap.dedent('''\
     Examples:
-    Query data for collision sensor on BAI_000646 for the last 3 days:
-        python data-api.py --key=${API_KEY} --sensors=COLLISION_1 --deviceId=BAI_0000646 --lastDay=3
-    Query data for collision sensor on BAI_000646 for the last 5 hours:
-        python data-api.py --key=${API_KEY} --sensors=COLLISION_1 --deviceId=BAI_0000646 --lastHour=5
-    Query data for collision sensor on BAI_000646 for a specific date range:
-        python data-api.py --key=${API_KEY} --sensors=COLLISION_1 --deviceId=BAI_0000646 \
+    Query data for collision sensor on BAI_0000754 for the last 3 days:
+        python data-api.py --key=${API_KEY} --sensors=COLLISION_1 --deviceId=BAI_0000754 --lastDay=3
+    Query data for collision sensor on BAI_0000754 for the last 5 hours:
+        python data-api.py --key=${API_KEY} --sensors=COLLISION_1 --deviceId=BAI_0000754 --lastHour=5
+    Query data for collision sensor on BAI_0000754 for a specific date range:
+        python data-api.py --key=${API_KEY} --sensors=COLLISION_1 --deviceId=BAI_0000754 \
             --startTime=2021-07-20T16:49:41 --endTime=2021-07-22T16:49:41
-    Query data for collision sensor on BAI_000646 for the last day, filtering on events which occurred
+    Query data for collision sensor on BAI_0000754 for the last day, filtering on events which occurred
     in the first 5 minutes of any 10 minute interval:
-        python data-api.py --key=${API_KEY} --sensors=COLLISION_1 --deviceId=BAI_0000646 --lastDay=1 \
+        python data-api.py --key=${API_KEY} --sensors=COLLISION_1 --deviceId=BAI_0000754 --lastDay=1 \
             --filterMinutesModulo=10 --filterMinutesRestrict=5
     Download clips of all collision events in the last hour to output folder ./output/:
-        python3 data-api.py --key=${API_KEY} --sensors=COLLISION_1 --deviceId=BAI_0000646 --lastHour=1 \
+        python3 data-api.py --key=${API_KEY} --sensors=COLLISION_1 --deviceId=BAI_0000754 --lastHour=1 \
             --filterMinutesModulo=10 --filterMinutesRestrict=5 --downloadEventClips --output output/
     '''))
     parser.add_argument('--sensors', help="A comma separated list of sensors to query")
