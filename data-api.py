@@ -58,6 +58,10 @@ def time_parse(args, parser):
     if args.lastHours is not None:
         args.startTime = (end_date - datetime.timedelta(hours=args.lastHours)).strftime(format_str)
         print(f'lastHours {args.lastHours} specified, used this to set startTime to {args.startTime}')
+    if args.lastMinutes is not None:
+        args.startTime = (end_date - datetime.timedelta(minutes=args.lastMinutes)).strftime(format_str)
+        print(f'lastMinutes {args.lastMinutes} specified, used this to set startTime to {args.startTime}')
+
 
     if args.startTime is None or args.endTime is None:
         print(f'Time range not specified for query')
@@ -235,22 +239,25 @@ def sensor_query():
                                      epilog=textwrap.dedent('''\
     Examples:
     Query data for collision sensor on BAI_0000754 for the last 3 days:
-        python data-api.py --key=${API_KEY} --sensors=COLLISION_1 --deviceId=BAI_0000754 --lastDay=3
+        python data-api.py --key=${API_KEY} --sensors=COLLISION_1 --deviceId=BAI_0000754 --lastDays=3
     Query data for collision sensor on BAI_0000754 for the last 5 hours:
-        python data-api.py --key=${API_KEY} --sensors=COLLISION_1 --deviceId=BAI_0000754 --lastHour=5
+        python data-api.py --key=${API_KEY} --sensors=COLLISION_1 --deviceId=BAI_0000754 --lastHours=5
     Query data for collision sensor on BAI_0000754 for a specific date range:
         python data-api.py --key=${API_KEY} --sensors=COLLISION_1 --deviceId=BAI_0000754 \
             --startTime=2021-07-20T16:49:41 --endTime=2021-07-22T16:49:41
     Query data for collision sensor on BAI_0000754 for the last day, filtering on events which occurred
     in the first 5 minutes of any 10 minute interval:
-        python data-api.py --key=${API_KEY} --sensors=COLLISION_1 --deviceId=BAI_0000754 --lastDay=1 \
+        python data-api.py --key=${API_KEY} --sensors=COLLISION_1 --deviceId=BAI_0000754 --lastDays=1 \
             --filterMinutesModulo=10 --filterMinutesRestrict=5
     Download clips of all collision events in the last hour to output folder ./output/:
-        python3 data-api.py --key=${API_KEY} --sensors=COLLISION_1 --deviceId=BAI_0000754 --lastHour=1 \
+        python3 data-api.py --key=${API_KEY} --sensors=COLLISION_1 --deviceId=BAI_0000754 --lastHours=1 \
             --filterMinutesModulo=10 --filterMinutesRestrict=5 --downloadEventClips --output output/
     '''))
     parser.add_argument('--sensors', help="A comma separated list of sensors to query")
     parser.add_argument('--deviceId', help="The device ID (BAI_XXXXXXX)")
+    parser.add_argument('--lastMinutes',
+                        type=int,
+                        help="A number of minutes relative to endTime (or now if endTime is not specified) to query")
     parser.add_argument('--lastHours',
                         type=int,
                         help="A number of hours relative to endTime (or now if endTime is not specified) to query")
