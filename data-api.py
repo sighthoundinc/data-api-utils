@@ -71,14 +71,16 @@ def time_parse(args, parser):
 def findVideo(gcp_client, args, time):
     bucket = None
     basePath = None
+    prefix = ''
     if args.sourceGCPpath:
         bucket = args.sourceGCPpath.split("/")[0]
         basePath = "/".join(args.sourceGCPpath.split("/")[1:])
+        prefix = f"{basePath}/{args.deviceId}/data_acq_vid/" + time.strftime("%Y-%m-%d") + "/"
     else:
         bucket = "bai-rawdata"
         basePath = "gcpbai"
-    prefix = f"{basePath}/{args.deviceId}/" + time.strftime("%Y-%m-%d") + "/"
-    # google cloud doesn't accept double //
+        prefix = f"{basePath}/{args.deviceId}/" + time.strftime("%Y-%m-%d") + "/"
+    # google cloud sdk doesn't like double //
     prefix = prefix.replace("//","/")
     blobs = gcp_client.list_blobs(bucket, prefix=prefix)
     format_str = "DataAcqVideo_%Y-%m-%d-%H-%M-%S.%f"
