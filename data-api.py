@@ -74,8 +74,11 @@ def findVideo(gcp_client, args, time):
     prefix = ''
     if args.sourceGCPpath:
         bucket = args.sourceGCPpath.split("/")[0]
-        basePath = "/".join(args.sourceGCPpath.split("/")[1:])
-        prefix = f"{basePath}/{args.deviceId}/data_acq_vid/" + time.strftime("%Y-%m-%d") + "/"
+        basePath = "/".join(args.sourceGCPpath.split("/")[1:])[1:]
+        if len(basePath) == 0:
+            prefix = f"{args.deviceId}/data_acq_video/" + time.strftime("%Y-%m-%d") + "/"
+        else:
+            prefix = f"{basePath}/{args.deviceId}/data_acq_video/" + time.strftime("%Y-%m-%d") + "/"
     else:
         bucket = "bai-rawdata"
         basePath = "gcpbai"
