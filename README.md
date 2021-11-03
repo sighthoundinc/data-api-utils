@@ -93,14 +93,16 @@ Download clips of all collision events in the last hour from GCP base path sh-ex
 ```
 gcloud auth application-default login
 mkdir output
-python3 data-api.py --key=${API_KEY} --sensors=COLLISION_1 --deviceId=BAI_0000754 --lastHour=1 --filterMinutesModulo=10 --filterMinutesRestrict=5 --downloadEventClips --sourceGCPpath sh-ext-customer/ --output output/
+export BUCKET_PATH=sh-ext-customer/
+python3 data-api.py --key=${API_KEY} --sensors=COLLISION_1 --deviceId=BAI_0000754 --lastHour=1 --filterMinutesModulo=10 --filterMinutesRestrict=5 --downloadEventClips --sourceGCPpath ${BUCKET_PATH} --output output/
 ```
 
 Download event clips of all collision events in the last hour from GCP bucket base path sh-ext-customer (change to your bucket name), upload event clips to GCP bucket bai-dev-data/ai-analysis/sample, and save a CSV file out.csv with links to the clips:
 ```
 gcloud auth application-default login
 mkdir output
-python3 data-api.py --key=${API_KEY} --sensors=COLLISION_1 --deviceId=BAI_0000754 --lastHour=1 --filterMinutesModulo=10 --filterMinutesRestrict=5 --downloadEventClips --sourceGCPpath sh-ext-customer/ --output output/ --uploadEventClips bai-dev-data/ai-analysis/sample/ --csv out.csv
+export BUCKET_PATH=sh-ext-customer/
+python3 data-api.py --key=${API_KEY} --sensors=COLLISION_1 --deviceId=BAI_0000754 --lastHour=1 --filterMinutesModulo=10 --filterMinutesRestrict=5 --downloadEventClips --sourceGCPpath ${BUCKET_PATH} --output output/ --uploadEventClips bai-dev-data/ai-analysis/sample/ --csv out.csv
 ```
 
 Download event clips of all collision events in the last hour from GCP bucket base path sh-ext-customer (change to your bucket name), upload event clips to GCP bucket bai-dev-data/ai-analysis/sample, and save a CSV file out.csv with links to the clips. 
@@ -108,7 +110,8 @@ Additionally, cross reference these events with PRESENCE_PERSON_1 events and hav
 ```
 gcloud auth application-default login
 mkdir output
-python3 data-api.py --key=${API_KEY} --sensors=COLLISION_1 --deviceId=BAI_0000754 --lastHour=1 --filterMinutesModulo=10 --filterMinutesRestrict=5 --downloadEventClips --sourceGCPpath sh-ext-customer/ --output output/ --uploadEventClips bai-dev-data/ai-analysis/sample/ --crossReferenceSensor PRESENCE_PERSON_1 --csv out.csv
+export BUCKET_PATH=sh-ext-customer/
+python3 data-api.py --key=${API_KEY} --sensors=COLLISION_1 --deviceId=BAI_0000754 --lastHour=1 --filterMinutesModulo=10 --filterMinutesRestrict=5 --downloadEventClips --sourceGCPpath ${BUCKET_PATH} --output output/ --uploadEventClips bai-dev-data/ai-analysis/sample/ --crossReferenceSensor PRESENCE_PERSON_1 --csv out.csv
 ```
 
 
