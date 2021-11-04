@@ -33,14 +33,40 @@ Run `python3 data-apy.py --help` for an overview.
 - `--filterMinutesRestrict`: An optional restrict filter. See notes for filterMinutesModulo
 
 #### Download Clips:
-**Note: To download clips you must be [logged into a Google User account](https://cloud.google.com/sdk/gcloud/reference/auth/login) with read access to the bai-rawdata bucket. Login with `gcloud auth application-default login`.**
-- `--downloadEventClips`: Optional flag to download the video clips of the queried events if they exist in the bai-rawdata GCP bucket
+**Note: To download clips you must be [logged into a Google User account](https://cloud.google.com/sdk/gcloud/reference/auth/login) with read access to the specified bucket (see "Accessing Device Media" below). Login with `gcloud auth application-default login`.**
+- `--downloadEventClips`: Optional flag to download the video clips of the queried events if they exist in a user-accessible GCP bucket.
 	- Must be used with the `--output` flag
 - `--output`: The output directory to download the event clips to
 - `--sourceGCPpath`: Google Cloud Storage path to search for and retrieve video clips from. Should be in the format `<bucket>/pathTo/deviceDirs`. If not specified, will default to `bai-rawdata/gcpbai/`
 - `--uploadEventClips`: Google Cloud Storage path to upload event clips to. Should be in the format `<bucket>/pathTo/eventClips/`. If specified, the event clips will be deleted locally after upload. 
 	- `--csv` argument can be used with `--uploadEventClips`
 - `--csv`: Path to output CSV file with eventId, timeCollected, and event clip GCP link if `--uploadEventClips` is specified. 
+
+
+### Acessing Device Media  
+The Sighthound support team can set up a GCP bucket for customers to be able to view the images, video, and event clips being uploaded from a DNN-Cam or DNN-Node device. Customers will be authenticated via their Google User account and the user must log in with `gcloud auth application-default login`  (see [Installing Cloud SDK](https://cloud.google.com/sdk/docs/install)) to access the clips using this script. Please reach out to the Sighthound team if you would like this set up.
+
+The bucket name will generally be `sh-ext-<customer>` and bucket structure looks like:
+```
+sh-ext-<customer>       -- Base directory contains one directory for each device
+├── BAI_0000649
+│   ├── data_acq_pic	-- Images collected by the Data Acquisition container
+│   |	├── 2021-04-22  -- Images are sorted by date
+│   |	|	└── ...
+│   |	└── 2021-11-02
+│   |		└── ...
+│   └── data_acq_vid	-- Videos collected by the Data Acquisition container
+│   	├── 2021-04-22  -- Videos are sorted by date
+│   	|	└── ...
+│   	└── 2021-11-02
+│   		└── ...
+├── BAI_0001049
+│   ├── data_acq_pic
+│   |	└── ...
+│   └── data_acq_vid	
+│   	└── ...
+└── ...	
+```
 
 ### Examples:
 Query data for collision sensor on BAI_0000754 for the last 3 days:
@@ -63,26 +89,29 @@ Query data for collision sensor on BAI_0000754 for the last day, filtering on ev
 ```
 python3 data-api.py --key=${API_KEY} --sensors=COLLISION_1 --deviceId=BAI_0000754 --lastDay=1 --filterMinutesModulo=10 --filterMinutesRestrict=5
 ```
-Download clips of all collision events in the last hour from GCP base path bai-rawdata/gcpbai (default) to local output folder ./output/:
+Download clips of all collision events in the last hour from GCP base path sh-ext-customer (change to your bucket name) to local output folder ./output/:
 ```
 gcloud auth application-default login
 mkdir output
-python3 data-api.py --key=${API_KEY} --sensors=COLLISION_1 --deviceId=BAI_0000754 --lastHour=1 --filterMinutesModulo=10 --filterMinutesRestrict=5 --downloadEventClips --sourceGCPpath bai-rawdata/gcpbai --output output/
+export BUCKET_PATH=sh-ext-customer/
+python3 data-api.py --key=${API_KEY} --sensors=COLLISION_1 --deviceId=BAI_0000754 --lastHour=1 --filterMinutesModulo=10 --filterMinutesRestrict=5 --downloadEventClips --sourceGCPpath ${BUCKET_PATH} --output output/
 ```
 
-Download event clips of all collision events in the last hour from GCP bucket base path bai-rawdata/gcpbai/ , upload event clips to GCP bucket bai-dev-data/ai-analysis/sample, and save a CSV file out.csv with links to the clips:
+Download event clips of all collision events in the last hour from GCP bucket base path sh-ext-customer (change to your bucket name), upload event clips to GCP bucket bai-dev-data/ai-analysis/sample, and save a CSV file out.csv with links to the clips:
 ```
 gcloud auth application-default login
 mkdir output
-python3 data-api.py --key=${API_KEY} --sensors=COLLISION_1 --deviceId=BAI_0000754 --lastHour=1 --filterMinutesModulo=10 --filterMinutesRestrict=5 --downloadEventClips --sourceGCPpath bai-rawdata/gcpbai  --output output/ --uploadEventClips bai-dev-data/ai-analysis/sample/ --csv out.csv
+export BUCKET_PATH=sh-ext-customer/
+python3 data-api.py --key=${API_KEY} --sensors=COLLISION_1 --deviceId=BAI_0000754 --lastHour=1 --filterMinutesModulo=10 --filterMinutesRestrict=5 --downloadEventClips --sourceGCPpath ${BUCKET_PATH} --output output/ --uploadEventClips bai-dev-data/ai-analysis/sample/ --csv out.csv
 ```
 
-Download event clips of all collision events in the last hour from GCP bucket base path bai-rawdata/gcpbai/ , upload event clips to GCP bucket bai-dev-data/ai-analysis/sample, and save a CSV file out.csv with links to the clips. 
+Download event clips of all collision events in the last hour from GCP bucket base path sh-ext-customer (change to your bucket name), upload event clips to GCP bucket bai-dev-data/ai-analysis/sample, and save a CSV file out.csv with links to the clips. 
 Additionally, cross reference these events with PRESENCE_PERSON_1 events and have this information included in the CSV file.:
 ```
 gcloud auth application-default login
 mkdir output
-python3 data-api.py --key=${API_KEY} --sensors=COLLISION_1 --deviceId=BAI_0000754 --lastHour=1 --filterMinutesModulo=10 --filterMinutesRestrict=5 --downloadEventClips --sourceGCPpath bai-rawdata/gcpbai  --output output/ --uploadEventClips bai-dev-data/ai-analysis/sample/ --crossReferenceSensor PRESENCE_PERSON_1 --csv out.csv
+export BUCKET_PATH=sh-ext-customer/
+python3 data-api.py --key=${API_KEY} --sensors=COLLISION_1 --deviceId=BAI_0000754 --lastHour=1 --filterMinutesModulo=10 --filterMinutesRestrict=5 --downloadEventClips --sourceGCPpath ${BUCKET_PATH} --output output/ --uploadEventClips bai-dev-data/ai-analysis/sample/ --crossReferenceSensor PRESENCE_PERSON_1 --csv out.csv
 ```
 
 
