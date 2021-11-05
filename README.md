@@ -93,12 +93,8 @@ Download clips of all collision events in the last hour from GCP base path sh-ex
 ```
 gcloud auth application-default login
 mkdir output
-<<<<<<< HEAD
-python3 data-api.py --key=${API_KEY} --sensors=COLLISION_1 --deviceId=BAI_0000754 --lastHour=1 --filterMinutesModulo=10 --filterMinutesRestrict=5 --downloadEventClips --sourceGCPpath bai-rawdata/gcpbai --output output/
-=======
 export BUCKET_PATH=sh-ext-customer/
 python3 data-api.py --key=${API_KEY} --sensors=COLLISION_1 --deviceId=BAI_0000754 --lastHour=1 --filterMinutesModulo=10 --filterMinutesRestrict=5 --downloadEventClips --sourceGCPpath ${BUCKET_PATH} --output output/
->>>>>>> private-master
 ```
 
 Download event clips of all collision events in the last hour from GCP bucket base path sh-ext-customer (change to your bucket name), upload event clips to GCP bucket bai-dev-data/ai-analysis/sample, and save a CSV file out.csv with links to the clips:
