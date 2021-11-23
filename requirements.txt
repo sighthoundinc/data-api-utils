@@ -3,3 +3,5 @@ python-dateutil
 datetime
 google-cloud-storage
 ffmpeg-python
+pyhumps
+python-dotenv

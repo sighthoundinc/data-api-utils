@@ -2,3 +2,4 @@
 output/
 .vscode/
 out.csv
+.env
