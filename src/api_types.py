@@ -1,17 +1,6 @@
 import datetime
 import json
 from enum import Enum
-# {
-# 	"streamId": "11c33a12-5098-450a-9fc3-cf9d97b958a7",
-# 	"deviceId": null,
-# 	"sensors": ["185fda6c-f1a7-4149-9057-b8751a23be1b"],
-# 	"startTime": "2021-01-15T00:00:00.000Z",
-# 	"endTime": "2021-01-15T04:00:00.000Z",
-# 	"limit": 100,
-# 	"order": "ASCENDING",
-# 	"withMeta": true,
-# 	"inProgressEvents": true
-# }
 from typing import List
 import humps
 

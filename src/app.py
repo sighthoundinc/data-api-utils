@@ -1,9 +1,10 @@
 import json
 import os
 from datetime import datetime
-from client import DataApiClient
-from api_types import StreamQuery, InProgressEvents
 from dotenv import load_dotenv
+
+from api_types import StreamQuery, InProgressEvents
+from client import DataApiClient
 
 load_dotenv()
 api_key = os.environ.get("API_KEY")
