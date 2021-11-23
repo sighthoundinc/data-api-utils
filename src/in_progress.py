@@ -7,6 +7,7 @@ from dotenv import load_dotenv
 
 from api_types import StreamQuery, InProgressEvents
 from client import DataApiClient
+import argparse
 
 
 def run(api_client: DataApiClient, stream_id: str, sensors: List[str], in_progress_events: InProgressEvents):
@@ -26,13 +27,21 @@ if __name__ == '__main__':
     load_dotenv()
     api_key = os.environ.get("API_KEY")
     api_base = os.environ.get("API_BASE")
+
+    parser = argparse.ArgumentParser(description='In progress example.')
+    parser.add_argument('--stream_id', dest='stream_id',
+                        help='stream_id to demonstrate', required=True)
+
+    parser.add_argument('--sensors', dest='sensors', nargs='+',
+                        help='sensors to query', required=True)
+
+    args = parser.parse_args()
+
     client = DataApiClient(api_key=api_key, api_base=api_base)
+    stream_id = args.stream_id
+    sensors = args.sensors
+    run(api_client=client, stream_id=stream_id, sensors=sensors, in_progress_events=InProgressEvents.ONLY)
 
-    run(api_client=client, stream_id='BAI_0000729', sensors=['PRESENCE_PERSON_1'],
-        in_progress_events=InProgressEvents.ONLY)
+    run(api_client=client, stream_id=stream_id, sensors=sensors, in_progress_events=InProgressEvents.NONE)
 
-    run(api_client=client, stream_id='BAI_0000729', sensors=['PRESENCE_PERSON_1'],
-        in_progress_events=InProgressEvents.NONE)
-
-    run(api_client=client, stream_id='BAI_0000729', sensors=['PRESENCE_PERSON_1'],
-        in_progress_events=InProgressEvents.INCLUDE)
+    run(api_client=client, stream_id=stream_id, sensors=sensors, in_progress_events=InProgressEvents.INCLUDE)
