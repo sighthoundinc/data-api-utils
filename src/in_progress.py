@@ -10,7 +10,7 @@ from client import DataApiClient
 import argparse
 
 
-def run(api_client: DataApiClient, stream_id: str, sensors: List[str], in_progress_events: InProgressEvents):
+def run(stream_id: str, sensors: List[str], in_progress_events: InProgressEvents):
     start = datetime(2021, 11, 23, 0)
     end = datetime(2021, 11, 24, 0)
     query = StreamQuery(stream_id=stream_id, sensors=sensors, start_time=start, end_time=end,
@@ -40,8 +40,8 @@ if __name__ == '__main__':
     client = DataApiClient(api_key=api_key, api_base=api_base)
     stream_id = args.stream_id
     sensors = args.sensors
-    run(api_client=client, stream_id=stream_id, sensors=sensors, in_progress_events=InProgressEvents.ONLY)
+    run(stream_id=stream_id, sensors=sensors, in_progress_events=InProgressEvents.ONLY)
 
-    run(api_client=client, stream_id=stream_id, sensors=sensors, in_progress_events=InProgressEvents.NONE)
+    run(stream_id=stream_id, sensors=sensors, in_progress_events=InProgressEvents.NONE)
 
-    run(api_client=client, stream_id=stream_id, sensors=sensors, in_progress_events=InProgressEvents.INCLUDE)
+    run(stream_id=stream_id, sensors=sensors, in_progress_events=InProgressEvents.INCLUDE)
