@@ -1,4 +1,4 @@
-from api_types import StreamQuery
+from api_types import StreamQuery, MediaQuery
 import requests
 
 
@@ -14,6 +14,12 @@ class DataApiClient:
     def query_stream_flat(self, query: StreamQuery):
         print(f'Query => {query.toJSON()}')
         r = requests.post(f'{self.api_base}data/stream/query', data=query.toJSON(), headers=self.headers)
+        r.raise_for_status()
+        return r.json()
+
+    def query_media_data(self, query: MediaQuery):
+        print(f'Query => {query.toJSON()}')
+        r = requests.post(f'{self.api_base}media/query', data=query.toJSON(), headers=self.headers)
         r.raise_for_status()
         return r.json()
 
