@@ -13,7 +13,7 @@ import argparse
 
 def run(stream_id: str, sensors: List[str]):
     start = datetime(2021, 11, 27)
-    end = datetime(2021, 11, 28)
+    end = datetime.now()
     query = StreamQuery(stream_id=stream_id, sensors=sensors, start_time=start, end_time=end)
     response = client.query_stream_flat(query)
 
@@ -51,7 +51,7 @@ if __name__ == '__main__':
         '0__PRESENCE_PERSON_5'
     ]
 
-    start = datetime.now() - timedelta(days=7)
+    start = datetime.now() - timedelta(hours=4)
     end = datetime.now()
     global_max_value = None
     for sensor in sensors:
@@ -74,10 +74,13 @@ if __name__ == '__main__':
 
     print(f'Global max objects in region {global_max_value}')
 
-    time_of_interest = date_parser.parse(global_max_value['timeCollected'])
+    time_of_interest = datetime.now()
+    # date_parser.parse(global_max_value['timeCollected'])
     media_query = MediaQuery(stream_id=global_max_value['streamId'],
-                             start_time=time_of_interest - timedelta(hours=6),
+                             start_time=time_of_interest - timedelta(minutes=15),
                              end_time=time_of_interest)
+
     media_response = client.query_media_data(media_query)
-    for json in media_response:
+    video_response = list(filter(lambda media_event: media_event['mediaType'] == 'VIDEO', media_response))
+    for json in video_response:
         print(json)
