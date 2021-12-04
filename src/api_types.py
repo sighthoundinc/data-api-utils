@@ -81,20 +81,16 @@ class StreamQuery(JsonObject):
         self.with_meta = with_meta
         self.in_progress_events = in_progress_events
 
+
 class MediaQuery(JsonObject):
     """
 
     """
 
     stream_id: str
-    device_id: str
-    sensors: List[str]
     start_time: datetime
     end_time: datetime
-    limit: int
-    order: str
-    with_meta: bool
-    in_progress_events: InProgressEvents
+    media_type: str
 
     def __init__(self,
                  stream_id: str,
@@ -104,3 +100,4 @@ class MediaQuery(JsonObject):
         self.stream_id = stream_id
         self.start_time = start_time
         self.end_time = end_time
+        self.media_type = 'VIDEO'
