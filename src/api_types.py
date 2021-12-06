@@ -157,3 +157,19 @@ class SensorsByWorkspaceQuery(JsonObject):
         self.workspace_id = workspace_id
         self.start_time = start_time
         self.end_time = end_time
+
+
+class LatestSensorEventQuery(JsonObject):
+    """
+
+    """
+
+    stream_id: str
+    sensor_id: str
+
+    def __init__(self,
+                 stream_id: str,
+                 sensor_id: str,
+                 ):
+        self.stream_id = stream_id
+        self.sensor_id = sensor_id

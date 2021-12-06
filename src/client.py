@@ -1,4 +1,4 @@
-from api_types import StreamQuery, MediaQuery, SensorsByWorkspaceQuery, StreamQueryAggregate
+from api_types import StreamQuery, MediaQuery, SensorsByWorkspaceQuery, StreamQueryAggregate, LatestSensorEventQuery
 import requests
 
 
@@ -12,6 +12,13 @@ class DataApiClient:
         self.headers = {'Content-type': 'application/json', 'X-API-Key': f'{self.api_key}'}
 
     # Define Stream Endpoints
+    def get_latest_stream_event(self, query: LatestSensorEventQuery):
+        """http://docs.data-api.boulderai.com/#get-latest-stream-data"""
+        r = requests.get(
+            f'{self.api_base}data/stream/{query.stream_id}/latest?sensorId={query.sensor_id}',
+            headers=self.headers)
+        r.raise_for_status()
+        return r.json()
 
     def query_stream_aggregate(self, query: StreamQueryAggregate):
         """http://docs.data-api.boulderai.com/#query-aggregated-stream-data"""
