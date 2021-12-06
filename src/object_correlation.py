@@ -47,6 +47,14 @@ if __name__ == '__main__':
     api_key = os.environ.get("API_KEY")
     api_base = os.environ.get("API_BASE")
 
+    if not api_key:
+        print('Please set the API_KEY environment variable.')
+        print('e.g. `export API_KEY="38ed7729792c48489945c8060255fa45"`')
+        exit(1)
+
+    if not api_base:
+        api_base = 'https://data-api.boulderai.com/'
+
     parser = argparse.ArgumentParser(description='In progress example.')
     parser.add_argument('--stream_id', dest='stream_id',
                         help='stream_id to demonstrate', required=True)
