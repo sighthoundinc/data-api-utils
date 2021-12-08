@@ -1,6 +1,6 @@
 import json
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import List
 
 from dotenv import load_dotenv
@@ -11,8 +11,8 @@ import argparse
 
 
 def run(stream_id: str, sensors: List[str], in_progress_events: InProgressEvents):
-    start = datetime(2021, 11, 23, 0)
-    end = datetime(2021, 11, 24, 0)
+    start = datetime.now() - timedelta(hours=24)
+    end = datetime.now()
     query = StreamQuery(stream_id=stream_id, sensors=sensors, start_time=start, end_time=end,
                         in_progress_events=in_progress_events)
     response = client.query_stream_flat(query)

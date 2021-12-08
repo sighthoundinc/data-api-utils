@@ -80,3 +80,96 @@ class StreamQuery(JsonObject):
         self.order = order
         self.with_meta = with_meta
         self.in_progress_events = in_progress_events
+
+
+class StreamQueryAggregate(JsonObject):
+    """
+
+    """
+
+    stream_id: str
+    device_id: str
+    sensors: List[str]
+    start_time: datetime
+    end_time: datetime
+    interval: str
+    functions: List[str]
+    fill_empty_windows: bool
+    order: str
+
+    def __init__(self,
+                 stream_id: str,
+                 device_id: str,
+                 sensors: List[str],
+                 start_time: datetime,
+                 end_time: datetime,
+                 interval: str,
+                 functions: List[str],
+                 fill_empty_windows: bool,
+                 order: str
+                 ):
+        self.stream_id = stream_id
+        self.device_id = device_id
+        self.sensors = sensors
+        self.start_time = start_time
+        self.end_time = end_time
+        self.interval = interval
+        self.functions = functions
+        self.fill_empty_windows = fill_empty_windows
+        self.order = order
+
+
+class MediaQuery(JsonObject):
+    """
+
+    """
+
+    stream_id: str
+    start_time: datetime
+    end_time: datetime
+    media_type: str
+
+    def __init__(self,
+                 stream_id: str,
+                 start_time: datetime,
+                 end_time: datetime,
+                 ):
+        self.stream_id = stream_id
+        self.start_time = start_time
+        self.end_time = end_time
+        self.media_type = 'VIDEO'
+
+
+class SensorsByWorkspaceQuery(JsonObject):
+    """
+
+    """
+
+    workspace_id: str
+    start_time: datetime
+    end_time: datetime
+
+    def __init__(self,
+                 workspace_id: str,
+                 start_time: datetime,
+                 end_time: datetime,
+                 ):
+        self.workspace_id = workspace_id
+        self.start_time = start_time
+        self.end_time = end_time
+
+
+class LatestSensorEventQuery(JsonObject):
+    """
+
+    """
+
+    stream_id: str
+    sensor_id: str
+
+    def __init__(self,
+                 stream_id: str,
+                 sensor_id: str,
+                 ):
+        self.stream_id = stream_id
+        self.sensor_id = sensor_id
