@@ -10,6 +10,8 @@ from api_types import StreamQuery, InProgressEvents, MediaQuery
 from client import DataApiClient
 import argparse
 
+from utils import get_media_range
+
 
 def run(stream_id: str, sensors: List[str]):
     start = datetime(2021, 11, 27)
@@ -89,9 +91,10 @@ if __name__ == '__main__':
     for event in sort_events[:5]:
         time_of_interest = date_parser.parse(event['timeCollected'])
         # Construct a query that looks 15 minutes back and 5 minutes forward
+        query_start, query_end = get_media_range(time_of_interest, 15, 5)
         media_query = MediaQuery(stream_id=event['streamId'],
-                                 start_time=time_of_interest - timedelta(minutes=15),
-                                 end_time=time_of_interest + timedelta(minutes=5))
+                                 start_time=query_start,
+                                 end_time=query_end)
 
         media_response = client.query_media_data(media_query)
         for video_event in media_response:

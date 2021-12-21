@@ -11,7 +11,7 @@ import argparse
 
 
 def run(stream_id: str, sensors: List[str], in_progress_events: InProgressEvents):
-    start = datetime.now() - timedelta(hours=24)
+    start = datetime.now() - timedelta(days=7)
     end = datetime.now()
     query = StreamQuery(stream_id=stream_id, sensors=sensors, start_time=start, end_time=end,
                         in_progress_events=in_progress_events)
