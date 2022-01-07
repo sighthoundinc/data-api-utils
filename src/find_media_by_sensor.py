@@ -1,4 +1,5 @@
 import json
+import csv
 import os
 from datetime import datetime, timedelta
 from typing import List
@@ -43,6 +44,11 @@ def get_event_by_object_id(events, object_id):
     return events_with_object
 
 
+# Python code to merge dict using update() method
+def merge(event, media):
+    return (event.update(media))
+
+
 if __name__ == '__main__':
     print('Running in object correlation example...')
     load_dotenv()
@@ -84,6 +90,17 @@ if __name__ == '__main__':
     )
 
     print(f'Found {len(events)} events.')
+
+    # now we will open a file for writing
+    data_file = open('data_file.csv', 'w')
+
+    # create the csv writer object
+    csv_writer = csv.writer(data_file)
+
+    # Counter variable used for writing
+    # headers to the CSV file
+    count = 0
+
     for event in events[:10]:
         time_of_interest = date_parser.parse(event['timeCollected'])
         query_start, query_end = get_media_range(time_of_interest, 0, 1)
@@ -95,6 +112,18 @@ if __name__ == '__main__':
             )
         )
 
+        if len(results) == 1:
+            merged = merge(event, results[0])
+            if count == 0:
+                # Writing headers of CSV file
+                header = merged.keys()
+                csv_writer.writerow(header)
+                count += 1
+
+            # Writing data to CSV file
+            csv_writer.writerow(merged.values())
+
         print(f'Found {len(results)} events.')
         for result in results[:10]:
+            print(event)
             print(result)

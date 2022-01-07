@@ -68,7 +68,7 @@ if __name__ == '__main__':
     sensors = args.sensors.split(',')
 
     # We want to look at the last 24 hours of data
-    start = datetime.now() - timedelta(days=7)
+    start = datetime.now() - timedelta(hours=1)
     end = datetime.now()
 
     results = client.query_stream_flat(StreamQuery(
