@@ -354,7 +354,7 @@ def sensor_query():
             for event in filtered_result:
                 csvInfo[event['id']]['timeCollected'] = event['timeCollected']
                 csvInfo[event['id']][f'{args.crossReferenceSensor} Time'] = event['closestTimeCollected']['event']['timeCollected'] if event['closestTimeCollected'] else None
-                csvInfo[event['id']][f'{args.crossReferenceSensor} Time Difference'] = event['closestTimeColleced']['time_difference_str'] if event['closestTimeColleced'] else None
+                csvInfo[event['id']][f'{args.crossReferenceSensor} Time Difference'] = event['closestTimeCollected']['time_difference_str'] if event['closestTimeCollected'] else None
 
 
     # download clips if video exists in source GCP bucket 
