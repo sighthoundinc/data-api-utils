@@ -112,16 +112,16 @@ if __name__ == '__main__':
             )
         )
 
-        if len(results) == 1:
-            merged = merge(event, results[0])
-            if count == 0:
-                # Writing headers of CSV file
-                header = merged.keys()
-                csv_writer.writerow(header)
-                count += 1
+        # if len(results) == 1:
+        #     merged = merge(event, results[0])
+        #     if count == 0:
+        #         # Writing headers of CSV file
+        #         header = merged.keys()
+        #         csv_writer.writerow(header)
+        #         count += 1
 
-            # Writing data to CSV file
-            csv_writer.writerow(merged.values())
+        #     # Writing data to CSV file
+        #     csv_writer.writerow(merged.values())
 
         print(f'Found {len(results)} events.')
         for result in results[:10]:
