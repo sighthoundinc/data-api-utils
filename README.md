@@ -69,6 +69,10 @@ sh-ext-<customer>       -- Base directory contains one directory for each device
 ```
 
 ### Examples:
+Query media events by sensors:
+```
+python3 src/find_media_by_sensor.py --stream_id BAI_0000000 --sensors 0__PRESENCE_CAR_1
+```
 Query data for collision sensor on BAI_0000754 for the last 3 days:
 ```
 python3 data-api.py --key=${API_KEY} --sensors=COLLISION_1 --deviceId=BAI_0000754 --lastDay=3
