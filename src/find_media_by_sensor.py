@@ -135,7 +135,7 @@ if __name__ == '__main__':
         #     # Writing data to CSV file
         #     csv_writer.writerow(merged.values())
 
-        print(f'Found {len(results)} events.')
+        print(f'Found {len(results)} media events for event {event["id"]}.')
         for result in results[:10]:
             print(event)
             print(result)
