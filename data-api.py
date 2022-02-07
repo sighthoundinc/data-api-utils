@@ -257,6 +257,13 @@ def sensor_query():
     Download clips of all collision events in the last hour to output folder ./output/:
         python3 data-api.py --key=${API_KEY} --sensors=COLLISION_1 --deviceId=BAI_0000754 --lastHours=1 \
             --filterMinutesModulo=10 --filterMinutesRestrict=5 --downloadEventClips --output output/
+    Download event clips of all collision events in the last hour from GCP bucket base path sh-ext-customer (change to 
+    your bucket name), upload event clips to GCP bucket bai-dev-data/ai-analysis/sample, and save a CSV file out.csv 
+    with links to the clips. Note that this is the legacy implementation.
+        export BUCKET_PATH=sh-ext-customer/
+        python3 data-api.py --key=${API_KEY} --sensors=COLLISION_1 --deviceId=BAI_0000754 --lastHour=1 \
+            --filterMinutesModulo=10 --filterMinutesRestrict=5 --downloadEventClips --sourceGCPpath ${BUCKET_PATH} \
+            --output output/ --uploadEventClips bai-dev-data/ai-analysis/sample/ --csv out.csv
     '''))
     parser.add_argument('--sensors', help="A comma separated list of sensors to query")
     parser.add_argument('--deviceId', help="The device ID (BAI_XXXXXXX)")
@@ -287,8 +294,9 @@ def sensor_query():
     parser.add_argument('--filterMinutesRestrict', type=int,
                         help='An optional restrict filter.  See notes for filterMinutesModulo')
     parser.add_argument('--crossReferenceSensor', type=str,
-                        help='A sensor to cross reference events with. This information will be output to the CSV \n'
-                             'file if the --csv flag is specified')
+                        help='A sensor to cross reference events with. The cross referenceed sensors time and \n'
+                             'time difference relative to the original sensor will be included in the csv \n'
+                             'if --csv is specified.')
     parser.add_argument('--downloadEventClips', action='store_true',
                         help='An optional argument to download the video clips of the events if they exist in the bai-rawdata\n'
                              'GCP bucket. Must be used with --output flag. ')
@@ -303,6 +311,9 @@ def sensor_query():
     parser.add_argument('--csv', 
                         help='Path to output CSV file with event clip information.'
                              'eventId and time collected information for each uploaded clip.')
+    if len(sys.argv) == 1:
+        parser.print_help()
+        sys.exit(1)
     args = parser.parse_args()
 
     time_parse(args, parser)

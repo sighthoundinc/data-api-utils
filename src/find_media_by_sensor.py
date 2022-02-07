@@ -1,6 +1,6 @@
 import json
 import csv
-import os
+import os, sys, textwrap
 from datetime import datetime, timedelta
 from typing import List
 from dateutil import parser as date_parser
@@ -63,13 +63,25 @@ if __name__ == '__main__':
     if not api_base:
         api_base = 'https://data-api.boulderai.com/'
 
-    parser = argparse.ArgumentParser(description='In progress example.')
+    parser = argparse.ArgumentParser(description='Find media by sensor example.',
+                                     formatter_class=argparse.RawDescriptionHelpFormatter,
+                                     epilog=textwrap.dedent('''\
+    Example:
+        export API_KEY="38ed7729792c48489945c8060255fa45"
+        python3 src/find_media_by_sensor.py --stream_id BAI_0000134 --sensors 0__PRESENCE_PERSON_1
+    '''))
     parser.add_argument('--stream_id', dest='stream_id',
-
-                        help='stream_id to demonstrate', required=True)
+                        help='stream_id to demonstrate. If using a DNNCam, use the device ID (i.e. BAI_0000134). '
+                             'Else, query for sensors on a device to get associated streamIds, '
+                             'see https://docs.data-api.sighthound.com/#get-sensors-by-device', required=True)
     parser.add_argument('--sensors', dest='sensors',
-                        help='sensors to fetch data from', required=True)
+                        help='sensors to fetch data from.  These should be formatted as <streamUUID>__<sensorName> '
+                             'where the streamUUID should be 0 for DNNCams. For example, if you would like to view the '
+                             'events from the PRESENCE_PERSON_1 sensor on a DNNCam, the sensor name would be 0__PRESENCE_PERSON_1.', required=True)
 
+    if len(sys.argv) == 1:
+        parser.print_help()
+        sys.exit(1)
     args = parser.parse_args()
 
     client = DataApiClient(api_key=api_key, api_base=api_base)
