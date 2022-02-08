@@ -46,7 +46,8 @@ def get_event_by_object_id(events, object_id):
 
 # Python code to merge dict using update() method
 def merge(event, media):
-    return (event.update(media))
+    event.update(media)
+    return event
 
 
 if __name__ == '__main__':
@@ -78,6 +79,8 @@ if __name__ == '__main__':
                         help='sensors to fetch data from.  These should be formatted as <streamUUID>__<sensorName> '
                              'where the streamUUID should be 0 for DNNCams. For example, if you would like to view the '
                              'events from the PRESENCE_PERSON_1 sensor on a DNNCam, the sensor name would be 0__PRESENCE_PERSON_1.', required=True)
+    parser.add_argument('--csv', default='',
+                        help='csv file to write to.  If not specified, will not write to anything')
 
     if len(sys.argv) == 1:
         parser.print_help()
@@ -103,15 +106,14 @@ if __name__ == '__main__':
 
     print(f'Found {len(events)} events.')
 
-    # now we will open a file for writing
-    data_file = open('data_file.csv', 'w')
-
-    # create the csv writer object
-    csv_writer = csv.writer(data_file)
-
-    # Counter variable used for writing
-    # headers to the CSV file
-    count = 0
+    if args.csv:
+        # now we will open a file for writing
+        data_file = open(args.csv, 'w')
+        # create the csv writer object
+        csv_writer = csv.writer(data_file)
+        # Counter variable used for writing
+        # headers to the CSV file
+        count = 0
 
     for event in events[:10]:
         time_of_interest = date_parser.parse(event['timeCollected'])
@@ -124,18 +126,22 @@ if __name__ == '__main__':
             )
         )
 
-        # if len(results) == 1:
-        #     merged = merge(event, results[0])
-        #     if count == 0:
-        #         # Writing headers of CSV file
-        #         header = merged.keys()
-        #         csv_writer.writerow(header)
-        #         count += 1
+        if args.csv:
+            if len(results) >= 1:
+                merged = merge(event, results[0])
+                if count == 0:
+                    # Writing headers of CSV file
+                    header = merged.keys()
+                    csv_writer.writerow(header)
+                    count += 1
 
-        #     # Writing data to CSV file
-        #     csv_writer.writerow(merged.values())
+                # Writing data to CSV file
+                csv_writer.writerow(merged.values())
 
         print(f'Found {len(results)} media events for event {event["id"]}.')
         for result in results[:10]:
             print(event)
             print(result)
+
+    if args.csv:
+        data_file.close()
