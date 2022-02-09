@@ -6,7 +6,7 @@ class DataApiClient:
     """Data API Client"""
     api_base: str
     api_key: str
-    headers: dict[str, str]
+    headers: dict
 
     def set_headers(self):
         self.headers = {'Content-type': 'application/json', 'X-API-Key': f'{self.api_key}'}
