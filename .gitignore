@@ -3,10 +3,14 @@ output/
 .vscode/
 out.csv
 .env
+.DS_Store
+tmp/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
 *$py.class
+
 
 # C extensions
 *.so

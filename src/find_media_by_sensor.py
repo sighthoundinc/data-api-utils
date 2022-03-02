@@ -11,6 +11,9 @@ from api_types import StreamQuery, InProgressEvents, MediaQuery
 from client import DataApiClient
 import argparse
 
+from google.cloud import storage
+import google.auth
+
 from utils import get_media_range
 
 
@@ -49,9 +52,43 @@ def merge(event, media):
     event.update(media)
     return event
 
+def pretty_print(data):
+    print(json.dumps(data, indent=2))
+
+
+credentials, project = None, None
+gcp_client = None
+bucket = None
+def download_video(url, filename):
+    global credentials, project, gcp_client, bucket
+    if not bucket:
+        credentials, project = google.auth.default()
+        gcp_client = storage.Client(project, credentials)
+        bucket = gcp_client.get_bucket(url.split("/")[2])
+    
+    print(f"Downloading {url.split('/')[-1]} to {filename}")
+    blob = bucket.get_blob("/".join(url.split("/")[3:]))
+    blob.download_to_filename(filename)
+
+def get_closest_result(results, time_of_interest):
+    if not results:
+        return None 
+
+    closest, timeDifference = None, None
+    for result in results:
+        difference = date_parser.parse(result['timeCollected']) - time_of_interest
+        if not timeDifference:
+            timeDifference = difference
+            closest = result
+            continue
+
+        if difference < timeDifference:
+            timeDifference = difference
+            closest = result
+    return closest
 
 if __name__ == '__main__':
-    print('Running in object correlation example...')
+    print('Running find media by sensor example...')
     load_dotenv()
     api_key = os.environ.get("API_KEY")
     api_base = os.environ.get("API_BASE")
@@ -79,6 +116,10 @@ if __name__ == '__main__':
                         help='sensors to fetch data from.  These should be formatted as <streamUUID>__<sensorName> '
                              'where the streamUUID should be 0 for DNNCams. For example, if you would like to view the '
                              'events from the PRESENCE_PERSON_1 sensor on a DNNCam, the sensor name would be 0__PRESENCE_PERSON_1.', required=True)
+    parser.add_argument('--num_events', '-n', dest='num_events', type=int,
+                        help='number of events to show/save to CSV.  Defaults to 10.', default=10)
+    parser.add_argument('--download', '-d', dest='download', action='store_true',
+                        help='Save media files to tmp/<eventId>.mp4 for each event', default=False)
     parser.add_argument('--csv', default='',
                         help='csv file to write to.  If not specified, will not write to anything')
 
@@ -91,8 +132,9 @@ if __name__ == '__main__':
     stream_id = args.stream_id
     sensors = args.sensors.split(',')
 
-    # We want to look at the last 24 hours of data
-    start = datetime.now() - timedelta(days=7)
+    # We want to look at the last numDays days of data
+    numDays = 7
+    start = datetime.now() - timedelta(days=numDays)
     end = datetime.now()
 
     events = client.query_stream_flat(
@@ -104,18 +146,14 @@ if __name__ == '__main__':
         )
     )
 
-    print(f'Found {len(events)} events.')
+    print(f'Found {len(events)} events in the last {numDays}.')
 
     if args.csv:
-        # now we will open a file for writing
         data_file = open(args.csv, 'w')
-        # create the csv writer object
         csv_writer = csv.writer(data_file)
-        # Counter variable used for writing
-        # headers to the CSV file
         count = 0
 
-    for event in events[:10]:
+    for event in events[:args.num_events]:
         time_of_interest = date_parser.parse(event['timeCollected'])
         query_start, query_end = get_media_range(time_of_interest, 0, 1)
         results = client.query_media_data(
@@ -126,9 +164,26 @@ if __name__ == '__main__':
             )
         )
 
-        if args.csv:
-            if len(results) >= 1:
-                merged = merge(event, results[0])
+        media_event = get_closest_result(results, time_of_interest)
+
+        if media_event:
+            print(f'Found media event for event {event["id"]}.')
+            print(f"Event: {event}")
+            print(f"Media Event:")
+            pretty_print(media_event)
+
+            if args.csv:
+                merged = {
+                    "sensorId": event['sensorId'],
+                    "deviceId": event['deviceId'],
+                    "event_id": event['id'],
+                    "event_timeCollected": event['timeCollected'],
+                    # "event_meta": event["meta"],
+                    "media_id": media_event['id'],
+                    "media_timeCollected": media_event['timeCollected'],
+                    "media_durationMs": media_event['durationMs'],
+                    "media_url": media_event['url'],
+                }
                 if count == 0:
                     # Writing headers of CSV file
                     header = merged.keys()
@@ -137,11 +192,12 @@ if __name__ == '__main__':
 
                 # Writing data to CSV file
                 csv_writer.writerow(merged.values())
-
-        print(f'Found {len(results)} media events for event {event["id"]}.')
-        for result in results[:10]:
-            print(event)
-            print(result)
+        
+            if args.download:
+                if not os.path.isdir("tmp"):
+                    os.mkdir("tmp")
+                if not os.path.exists(f'tmp/{event["id"]}.mp4'):
+                    download_video(media_event['url'], f'tmp/{event["id"]}.mp4')
 
     if args.csv:
         data_file.close()
