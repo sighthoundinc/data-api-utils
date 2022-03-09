@@ -59,11 +59,14 @@ def pretty_print(data):
 credentials, project = None, None
 gcp_client = None
 bucket = None
-def download_video(url, filename):
+def download_video(url, filename, use_service_account):
     global credentials, project, gcp_client, bucket
     if not bucket:
-        credentials, project = google.auth.default()
-        gcp_client = storage.Client(project, credentials)
+        if use_service_account:
+            credentials, project = google.auth.default()
+            gcp_client = storage.Client(project, credentials)
+        else:
+            gcp_client = storage.Client()
         bucket = gcp_client.get_bucket(url.split("/")[2])
     
     print(f"Downloading {url.split('/')[-1]} to {filename}")
@@ -120,6 +123,10 @@ if __name__ == '__main__':
                         help='number of events to show/save to CSV.  Defaults to 10.', default=10)
     parser.add_argument('--download', '-d', dest='download', action='store_true',
                         help='Save media files to tmp/<eventId>.mp4 for each event', default=False)
+    parser.add_argument('--use_service_account', '-s', dest='use_service_account', action='store_true',
+                        help='Use environment default GCP service account to download media files', default=False)
+    parser.add_argument('--min_timeOn', '-m', dest='min_timeOn', type=float, default=1.5, 
+                        help='Minimum amount of time (seconds) that an object must be present in presence zone.')
     parser.add_argument('--csv', default='',
                         help='csv file to write to.  If not specified, will not write to anything')
 
@@ -146,14 +153,19 @@ if __name__ == '__main__':
         )
     )
 
-    print(f'Found {len(events)} events in the last {numDays}.')
+    print(f'Found {len(events)} events in the last {numDays} days.')
 
     if args.csv:
         data_file = open(args.csv, 'w')
         csv_writer = csv.writer(data_file)
         count = 0
 
-    for event in events[:args.num_events]:
+    valid_events = 0
+    for event in events:
+        # filter out events of 1 sec or less
+        if event["meta"]["timeOn"] <= args.min_timeOn:
+            continue
+        valid_events += 1
         time_of_interest = date_parser.parse(event['timeCollected'])
         query_start, query_end = get_media_range(time_of_interest, 0, 1)
         results = client.query_media_data(
@@ -178,6 +190,7 @@ if __name__ == '__main__':
                     "deviceId": event['deviceId'],
                     "event_id": event['id'],
                     "event_timeCollected": event['timeCollected'],
+                    "event_timeOn": event['meta']['timeOn'],
                     # "event_meta": event["meta"],
                     "media_id": media_event['id'],
                     "media_timeCollected": media_event['timeCollected'],
@@ -197,7 +210,9 @@ if __name__ == '__main__':
                 if not os.path.isdir("tmp"):
                     os.mkdir("tmp")
                 if not os.path.exists(f'tmp/{event["id"]}.mp4'):
-                    download_video(media_event['url'], f'tmp/{event["id"]}.mp4')
+                    download_video(media_event['url'], f'tmp/{event["id"]}.mp4', args.use_service_account)
+            if valid_events == args.num_events:
+                break
 
     if args.csv:
         data_file.close()
