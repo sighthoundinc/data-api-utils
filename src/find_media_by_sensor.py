@@ -141,8 +141,8 @@ if __name__ == '__main__':
 
     # We want to look at the last numDays days of data
     numDays = 7
-    start = datetime.now() - timedelta(days=numDays)
-    end = datetime.now()
+    start = datetime.utcnow() - timedelta(days=numDays)
+    end = datetime.utcnow()
 
     events = client.query_stream_flat(
         StreamQuery(
@@ -163,7 +163,7 @@ if __name__ == '__main__':
     valid_events = 0
     for event in events:
         # filter out events of 1 sec or less
-        if event["meta"]["timeOn"] <= args.min_timeOn:
+        if "timeOn" in event["meta"] and event["meta"]["timeOn"] <= args.min_timeOn:
             continue
         valid_events += 1
         time_of_interest = date_parser.parse(event['timeCollected'])
@@ -197,6 +197,8 @@ if __name__ == '__main__':
                     "media_durationMs": media_event['durationMs'],
                     "media_url": media_event['url'],
                 }
+                if "timeOn" in event["meta"]:
+                    merged["event_timeOn"] = event["meta"]["timeOn"]
                 if count == 0:
                     # Writing headers of CSV file
                     header = merged.keys()
