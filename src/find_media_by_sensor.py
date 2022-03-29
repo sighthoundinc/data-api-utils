@@ -13,6 +13,7 @@ import argparse
 
 from google.cloud import storage
 import google.auth
+import subprocess
 
 from utils import get_media_range
 
@@ -72,6 +73,12 @@ def download_video(url, filename, use_service_account):
     print(f"Downloading {url.split('/')[-1]} to {filename}")
     blob = bucket.get_blob("/".join(url.split("/")[3:]))
     blob.download_to_filename(filename)
+
+# in my experience, this only works on Windows
+def download_video_shell(url, filename):
+    cmd_line = [os.environ["CLOUDSDK_ROOT_DIR"] + '\\bin\\gsutil', 'cp', url, filename]
+    print(f"Executing {' '.join(cmd_line)}")
+    subprocess.call(cmd_line, shell=True)
 
 def get_closest_result(results, time_of_interest):
     if not results:
@@ -212,7 +219,10 @@ if __name__ == '__main__':
                 if not os.path.isdir("tmp"):
                     os.mkdir("tmp")
                 if not os.path.exists(f'tmp/{event["id"]}.mp4'):
-                    download_video(media_event['url'], f'tmp/{event["id"]}.mp4', args.use_service_account)
+                    if "CLOUDSDK_ROOT_DIR" in os.environ:
+                        download_video_shell(media_event['url'], f'tmp/{event["id"]}.mp4')
+                    else:
+                        download_video(media_event['url'], f'tmp/{event["id"]}.mp4', args.use_service_account)
             if valid_events == args.num_events:
                 break
 
