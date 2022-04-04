@@ -173,3 +173,14 @@ class LatestSensorEventQuery(JsonObject):
                  ):
         self.stream_id = stream_id
         self.sensor_id = sensor_id
+
+
+class LatestStatusByWorkspaceQuery(JsonObject):
+    """
+
+    """
+
+    workspace_id: str
+
+    def __init__(self, workspace_id):
+        self.workspace_id = workspace_id

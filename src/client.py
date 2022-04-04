@@ -1,4 +1,4 @@
-from api_types import StreamQuery, MediaQuery, SensorsByWorkspaceQuery, StreamQueryAggregate, LatestSensorEventQuery
+from api_types import *
 import requests
 
 
@@ -47,6 +47,15 @@ class DataApiClient:
         """http://docs.data-api.boulderai.com/#query-media-data"""
         print(f'Query => {query.toJSON()}')
         r = requests.post(f'{self.api_base}media/query', data=query.toJSON(), headers=self.headers)
+        r.raise_for_status()
+        return r.json()
+
+    def query_status_by_workspace(self, query: LatestStatusByWorkspaceQuery):
+        """https://storage.googleapis.com/bai-data-api-docs/index.html#get-latest-status-by-workspace"""
+        r = requests.get(
+            f'{self.api_base}workspace/{query.workspace_id}/devices/status',
+            headers=self.headers
+        )
         r.raise_for_status()
         return r.json()
 
