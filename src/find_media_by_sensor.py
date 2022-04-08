@@ -197,7 +197,6 @@ if __name__ == '__main__':
                     "deviceId": event['deviceId'],
                     "event_id": event['id'],
                     "event_timeCollected": event['timeCollected'],
-                    "event_timeOn": event['meta']['timeOn'],
                     # "event_meta": event["meta"],
                     "media_id": media_event['id'],
                     "media_timeCollected": media_event['timeCollected'],

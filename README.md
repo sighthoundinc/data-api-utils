@@ -11,8 +11,8 @@ pip3 install -r requirements.txt
 # Instructions and examples
 There are a few different example scripts in this repository that can be used to demonstrate the capabilities of the Sighthound Data API:
 ## src/find_media_by_sensor.py
-Run `python3 src/find_media_by_sensor.py --help` for an overveiw. The `find_media_by_sensor.py` script can be used to query the videos associated with the last 10 sensor events for a specific sensor and stream. For each event, gsutil URI's will be provided for video events. See the [gsutil documentation](https://cloud.google.com/storage/docs/gsutil) for information on how you can download the videos using the gsutil URIs.
-### Required Arguments/Environemnt Variables
+Run `python3 src/find_media_by_sensor.py --help` for an overview. The `find_media_by_sensor.py` script can be used to query the videos associated with the last 10 sensor events for a specific sensor and stream. For each event, gsutil URI's will be provided for video events. See the [gsutil documentation](https://cloud.google.com/storage/docs/gsutil) for information on how you can download the videos using the gsutil URIs.
+### Required Arguments/Environment Variables
 - `export API_KEY=<API_KEY>`: The `API_KEY` environment variable must be set with your Sighthound Data API Key prior to running this script
 - `--stream_id`: The stream_id that you would like to query events for. If using a DNNCam, use the device ID (i.e. BAI_0000134). Else, query for sensors on a device to get associated streamId's, see https://docs.data-api.sighthound.com/#get-sensors-by-device
 - `--sensors`: The sensor(s) to be queried. These should be formatted as `<streamUUID>__<sensorName>` where the `streamUUID` should be `0` for DNNCam's. For example, if you would like to view the events from the `PRESENCE_PERSON_1` sensor on a DNNCam, the sensor name would be `0__PRESENCE_PERSON_1`.
@@ -22,6 +22,26 @@ Query media events for the last 10 `PRESENCE_PERSON_1` events on camera BAI_0000
 ```
 export API_KEY="38ed7729792c48489945c8060255fa45"
 python3 src/find_media_by_sensor.py --stream_id BAI_0000134 --sensors 0__PRESENCE_PERSON_1
+```
+
+## src/device_status_check.py
+Run `python3 src/device_status_check.py --help` for an overview. The `device_status_check.py` script can be used 
+to get a quick overview of the status of the devices in a given workspace. It will report the status of services 
+running on devices in a workspace, as well as any devices that have > 90% storage used.  
+### Required Arguments/Environment Variables
+- `export API_KEY=<API_KEY>`: The `API_KEY` environment variable must be set (or populated in a `.env` file) with your Sighthound Data API Key prior
+to running the script
+- `--workspace_id`: The workspace ID of the workspace of devices you'd like to query.
+### Optional Arguments:
+- `--device_list`: A JSON file of a list of devices that you would like to get the status of. Please note that only devices
+that belong to the workspace (specified by the `--workspace_id` parameter) and are in the list will be reported. Please see
+the [cust_devices.json](cust_devices.json) as an example/template file. 
+
+### Examples
+Query the device status of the devices in the `cust_devices.json` file that are in the workspace with workspace ID `9cc77d13-5381-479d-b805-0472c97d4055`.
+```
+export API_KEY="38ed7729792c48489945c8060255fa45"
+python3 src/device_status_check.py --workspace_id 9cc77d13-5381-479d-b805-0472c97d4055 --device_list cust_devices.json"
 ```
 
 ## data-api.py
