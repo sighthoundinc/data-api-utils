@@ -184,3 +184,20 @@ class LatestStatusByWorkspaceQuery(JsonObject):
 
     def __init__(self, workspace_id):
         self.workspace_id = workspace_id
+
+class SensorsByDeviceQuery(JsonObject):
+    """
+
+    """
+
+    device_id: str
+    start_time: str
+    end_time: str
+
+    def __init__(self,
+                 device_id: str,
+                 start_time: datetime,
+                 end_time: datetime):
+        self.device_id = device_id
+        self.start_time = start_time.isoformat()
+        self.end_time = end_time.isoformat()

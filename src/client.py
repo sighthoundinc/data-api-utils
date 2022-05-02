@@ -59,6 +59,15 @@ class DataApiClient:
         r.raise_for_status()
         return r.json()
 
+    def query_sensors_by_device(self, query: SensorsByDeviceQuery):
+        """https://storage.googleapis.com/bai-data-api-docs/index.html#get-sensors-by-device"""
+        r = requests.get(
+            f'{self.api_base}device/{query.device_id}/sensors?startTime={query.start_time}&endTime={query.end_time}',
+            headers=self.headers
+        )
+        r.raise_for_status()
+        return r.json()
+
     def __init__(self, api_key: str, api_base: str = 'https://data-api.boulderai.com/'):
         self.api_key = api_key
         self.api_base = api_base
