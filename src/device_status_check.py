@@ -5,7 +5,12 @@ import sys
 import json
 
 from client import DataApiClient
-from api_types import LatestStatusByWorkspaceQuery
+from api_types import LatestStatusByWorkspaceQuery, SensorsByDeviceQuery
+from utils import *
+
+LOW_STORAGE_THRESHOLD = 90      # % storage used to mark low storage
+LAST_SEEN_THRESHOLD = 60*20     # number of seconds since last ping to consider a device offline
+CHECK_FOR_DATA_HOURS = 24       # how far back to check for device data
 
 
 def parse_args():
@@ -45,7 +50,7 @@ def service_status(service_name: str, devices: dict):
 
 
 if __name__ == '__main__':
-    print('Running device status check...')
+    print(f"Running device status check...")
     load_dotenv()
     api_key = os.environ.get("API_KEY")
     api_base = os.environ.get("API_BASE")
@@ -72,23 +77,66 @@ if __name__ == '__main__':
             devices = json.load(f)
     services = {}
     low_storage = {}
+    not_low_storage = []
+    online = []
+    offline = {}
     for device in data:
         device_id = device['deviceId']
+        # check services
         if devices and device_id not in devices:
             continue
         for service in device['services']:
             if service['name'] not in services:
                 services[service['name']] = {}
             services[service['name']][device_id] = service['status']['status']
-        if device['mainMemoryStorage']['percentageUse'] > 95:
-            low_storage[device_id] = device['mainMemoryStorage']['percentageUse']
+        # check low storage
+        if device['dataMemoryStorage']['percentageUse'] > LOW_STORAGE_THRESHOLD:
+            low_storage[device_id] = device['dataMemoryStorage']['percentageUse']
+        else:
+            not_low_storage.append(device_id)
+        # check last seen
+        last_seen = datetime.datetime.strptime(device['lastSeen'].split(".")[0], "%Y-%m-%dT%H:%M:%S")
+        time_since_last_seen = datetime.datetime.utcnow() - last_seen
+        if time_since_last_seen.seconds > LAST_SEEN_THRESHOLD:
+            offline[device_id] = time_since_last_seen.seconds
+        else:
+            online.append(device_id)
 
-    print(f"\nStopped Services Status:")
-    for name, devices in services.items():
-        service_status(name, devices)
 
+    has_sensor_data = []
+    no_sensor_data = []
+    for device_id in devices:
+        query_start, query_end = get_media_range(datetime.datetime.utcnow(), CHECK_FOR_DATA_HOURS*60, 0)
+        sensors = client.query_sensors_by_device(
+            SensorsByDeviceQuery(
+                device_id=device_id,
+                start_time=query_start,
+                end_time=query_end
+            )
+        )
+        [has_sensor_data.append(device_id) if sensors else no_sensor_data.append(device_id)]
+
+    print(f"\nServices Status Check:")
+    for name, device in services.items():
+        service_status(name, device)
+
+    print(f"\nRecent Data Check:")
+    print(f"=> {len(has_sensor_data)} device(s) have sensor data in the last {CHECK_FOR_DATA_HOURS} hours.")
+    if no_sensor_data:
+        print(f"=> The following device(s) have no sensor data in the last {CHECK_FOR_DATA_HOURS} hours: {no_sensor_data}")
+
+    print(f"\nLow Storage Check:")
     if low_storage:
-        print(f"\nLow Storage Status:")
+        print(f"=> {len(low_storage)} device(s) are low on storage:")
         for device, percentage_used in low_storage.items():
             print(f"\t- {device} storage is {percentage_used}% full")
+    else:
+        print(f"=> All {len(not_low_storage)} devices are not low on storage.")
+
+    print(f"\nDevice Connectivity Check:")
+    print(f"=> {len(online)} device(s) are online.")
+    if offline:
+        print(f"=> {len(offline)} device(s) appear offline:")
+        for device, time_since in offline.items():
+            print(f"\t- {device} was last seen ~{int(time_since/60)} minutes ago")
 
